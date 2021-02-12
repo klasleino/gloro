@@ -7,3 +7,5 @@ except:
     pass
 
 from gloro.models import GloroNet
+
+from gloro.constants import GLORO_CUSTOM_OBJECTS

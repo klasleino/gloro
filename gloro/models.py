@@ -101,11 +101,15 @@ class GloroNet(Model):
         if converge:
             self.refresh_iterates(batch_size=100)
 
-        return GloroNet(
+        frozen = GloroNet(
             epsilon=self.epsilon,
             model=self._f.model,
             num_iterations=0,
             hardcoded_kW=K.get_value(self._margin_layer._kW))
+
+        frozen.trainable = False
+
+        return frozen
 
     def refresh_iterates(
             self, 

@@ -4,7 +4,7 @@ from tensorflow.keras.callbacks import LearningRateScheduler
 from gloro.models import GloroNet
 
 
-def __print_if_verbose(verbose):
+def _print_if_verbose(verbose):
     if verbose:
         return lambda s: print(s)
 
@@ -12,8 +12,8 @@ def __print_if_verbose(verbose):
         return lambda s: None
 
 
-def __check_is_gloro_net(callback, model):
-    if not isinstance(self.model, GloroNet):
+def _check_is_gloro_net(callback, model):
+    if not isinstance(model, GloroNet):
         raise ValueError(
             f'`{callback.__class__.__name__}` can only be used with a '
             f'`GloroNet` model')
@@ -62,13 +62,13 @@ class EpsilonScheduler(Callback):
         else:
             raise ValueError(f'unrecognized schedule string: {schedule_string}')
 
-        self._print = __print_if_verbose(verbose)
+        self._print = _print_if_verbose(verbose)
 
         self.__prev_eps = None
         self.__current_eps = self._epoch_to_eps[0]
 
     def on_epoch_begin(self, epoch, logs=None):
-        __check_is_gloro_net(self, self.model)
+        _check_is_gloro_net(self, self.model)
 
         if epoch < len(self._epoch_to_eps):
             next_eps = self._epoch_to_eps[epoch]
@@ -96,15 +96,15 @@ class UpdatePowerIterates(Callback):
         self._convergence_threshold = convergence_threshold
         self._batch_size = iteration_batch_size
 
-        self._print = __print_if_verbose(verbose)
+        self._print = _print_if_verbose(verbose)
         self._verbose = verbose
 
     def on_epoch_begin(self, epoch, logs=None):
-        __check_is_gloro_net(self, self.model)
+        _check_is_gloro_net(self, self.model)
 
         self._print('\n-- refreshing iterates --')
 
-        self.model.converge_iterates(
+        self.model.refresh_iterates(
             convergence_threshold=self._convergence_threshold,
             batch_size=self._batch_size,
             verbose=self._verbose)
@@ -113,7 +113,7 @@ class UpdatePowerIterates(Callback):
         if epoch >= self._duration - 1:
             self._print('\n-- refreshing iterates --')
 
-            self.model.converge_iterates(
+            self.model.refresh_iterates(
                 convergence_threshold=self._convergence_threshold,
                 batch_size=self._batch_size,
                 verbose=self._verbose)

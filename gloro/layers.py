@@ -5,6 +5,7 @@ import tensorflow.keras.backend as K
 from tensorflow.keras.layers import Layer
 
 from gloro.utils import global_lipschitz_bound_spectral_power
+from gloro.utils import np_truncated_normal
 
 
 class LipschitzMargin(Layer):

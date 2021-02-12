@@ -71,3 +71,6 @@ ipython_config.py
 
 # Sublime
 sftp-config*
+
+# Mac OS
+*.DS_Store

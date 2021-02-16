@@ -13,7 +13,7 @@ with open('requirements.txt', 'r') as requirements:
         author_email='kleino@cs.cmu.edu',
         classifiers=[
             'Programming Language :: Python :: 3',
-            'License :: OSI Approved :: MIT License,'
+            'License :: OSI Approved :: MIT License',
             'Operating System :: OS Independent'],
         long_description='file: README.md',
         long_description_content_type='text/markdown'

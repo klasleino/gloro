@@ -10,6 +10,11 @@ with open('requirements.txt', 'r') as requirements:
             'library for training globally-robust neural networks',
         python_requires='>=3.6',
         author='Klas Leino',
+        author_email='kleino@cs.cmu.edu',
+        classifiers=[
+            'Programming Language :: Python :: 3',
+            'License :: OSI Approved :: MIT License,'
+            'Operating System :: OS Independent'],
         long_description='file: README.md',
         long_description_content_type='text/markdown'
     )

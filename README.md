@@ -3,7 +3,14 @@ Library for training globally-robust neural networks.
 
 # Installation
 
-1. Clone the repository and change into its root directory.
+Simply install via pip:
+```
+pip install gloro
+```
+
+Alternatively, you can install from the source repository:
+
+1. Clone the [repository](https://github.com/klasleino/gloro) and change into its root directory.
 
 2. Install from source via
 ```

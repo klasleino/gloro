@@ -3,7 +3,8 @@ import numpy as np
 from tensorflow.keras.callbacks import Callback
 from tensorflow.keras.callbacks import LearningRateScheduler
 
-from gloro.models import GloroNet
+import gloro
+
 from gloro.training.losses import Trades
 
 
@@ -16,7 +17,7 @@ def _print_if_verbose(verbose):
 
 
 def _check_is_gloro_net(callback, model):
-    if not isinstance(model, GloroNet):
+    if not isinstance(model, gloro.GloroNet):
         raise ValueError(
             f'`{callback.__class__.__name__}` can only be used with a '
             f'`GloroNet` model')

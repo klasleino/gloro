@@ -91,7 +91,10 @@ gloronet.fit(
         # model. This allows the model to maintain the state of the power
         # method iterates over training, and ensures that the computed 
         # Lipschitz constant has converged prior to the start of each epoch and
-        # at the end of training.
+        # at the end of training. When calling `fit` on a `GloroNet`, this is
+        # included by default, but it can also be added explicitly, like in
+        # this example, or it can be disabled by passing 
+        # `update_iterates=False` to `fit`.
         UpdatePowerIterates(),
 
         # It is often useful to begin with a small robustness radius and grow
@@ -129,7 +132,6 @@ The `Trades` loss function takes a parameter, `lam`, that represents the weight 
 An example is shown below.
 ```python
 from gloro.training.callbacks import TradesScheduler
-from gloro.training.callbacks import UpdatePowerIterates
 from gloro.training.losses import Trades
 from gloro.training.metrics import clean_acc
 from gloro.training.metrics import vra
@@ -149,8 +151,6 @@ gloronet.fit(
     epochs=10,
     batch_size=16,
     callbacks=[
-        UpdatePowerIterates(),
-
         # It is often useful to begin with a small TRADES parameter and
         # increase it over time so that the GloRo Net learns to make accurate 
         # predictions in addition to robust ones. The `TradesScheduler` 

@@ -3,6 +3,7 @@ import tensorflow.keras.backend as K
 from tensorflow.keras.models import Model
 
 from gloro.layers import LipschitzMargin
+from gloro.training.callbacks import UpdatePowerIterates
 
 
 class GloroNet(Model):
@@ -132,6 +133,28 @@ class GloroNet(Model):
         self._margin_layer.update_iterates()
 
         return self
+
+    def fit(self, *args, update_iterates=True, **kwargs):
+        if update_iterates:
+            includes_update_iterates = False
+
+            if 'callbacks' in kwargs:
+                callbacks = kwargs['callbacks']
+
+                for callback in callbacks:
+                    if isinstance(callback, UpdatePowerIterates):
+                        includes_update_iterates = True
+
+            else:
+                callbacks = []
+
+            if not includes_update_iterates:
+                kwargs['callbacks'] = [
+                    UpdatePowerIterates(verbose=False),
+                    *callbacks
+                ]
+
+        return super().fit(*args, **kwargs)
         
     def get_config(self):
         config = super().get_config()

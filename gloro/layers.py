@@ -67,7 +67,6 @@ class LipschitzMargin(Layer):
                 self._model, 
                 self._num_iterations, 
                 self._norm, 
-                exclude_last_layer=False,
                 maintain_state=self._maintain_state)
 
             if self._maintain_state:

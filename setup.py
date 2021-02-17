@@ -7,7 +7,7 @@ with open("README.md", "r", encoding="utf-8") as f:
 with open('requirements.txt', 'r') as requirements:
     setup(
         name='gloro',
-        version='0.0.2',
+        version='0.0.3',
         install_requires=list(requirements.read().splitlines()),
         packages=find_packages(),
         description=

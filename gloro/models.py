@@ -71,7 +71,7 @@ class GloroNet(Model):
 
     @epsilon.setter
     def epsilon(self, new_epsilon):
-        self._margin_layer.epsilon = epsilon
+        self._margin_layer.epsilon = new_epsilon
 
     @property
     def num_iterations(self):

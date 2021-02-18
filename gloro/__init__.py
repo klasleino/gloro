@@ -1,4 +1,4 @@
-__version__ = '0.0.4'
+__version__ = '0.0.5'
 
 # Disable eager execution if using Tensorflow 2.
 try:

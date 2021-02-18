@@ -1,6 +1,16 @@
 # gloro
 Library for training globally-robust neural networks.
 
+This repository implements the method described in this [paper](), and is maintained by the authors, Klas Leino, Zifan Wang, and Matt Fredrikson. If you use this code, please use the following citation:
+```bibtex
+@ARTICLE{leino21gloro,
+    title = {Globally-Robust Neural Networks},
+    author = {Klas Leino and Zifan Wang and Matt Fredrikson},
+    year = {2021},
+    journal = {CoRR},
+    volume = {abs/2102.08452}
+}
+```
 
 # Installation
 

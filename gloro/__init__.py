@@ -1,3 +1,5 @@
+__version__ = '0.0.4'
+
 # Disable eager execution if using Tensorflow 2.
 try:
     from tensorflow.python.framework.ops import disable_eager_execution

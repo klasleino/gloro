@@ -1,9 +1,15 @@
-import tensorflow.keras.backend as K
+import json
+import os
+import shutil
+import tarfile
+import tensorflow as tf
 
 from tensorflow.keras.models import Model
 
-from gloro.layers import LipschitzMargin
+from gloro.constants import GLORO_CUSTOM_OBJECTS
+from gloro.layers.margin_layers import LipschitzMargin
 from gloro.training.callbacks import UpdatePowerIterates
+from gloro.training.losses import get as get_loss
 
 
 class GloroNet(Model):
@@ -13,11 +19,9 @@ class GloroNet(Model):
             outputs=None, 
             epsilon=None, 
             num_iterations=5,
-            maintain_state=True,
             model=None, 
-            hardcoded_kW=None, 
             **kwargs):
-
+            
         if epsilon is None:
             raise ValueError('`epsilon` is required')
         
@@ -28,14 +32,14 @@ class GloroNet(Model):
         if model is not None and inputs is not None and outputs is not None:
             raise ValueError(
                 'cannot specify both `inputs` and `outputs` and `model`')
-        
+
         if inputs is None or outputs is None:
             inputs = model.inputs
             outputs = model.outputs
             
         else:
             model = Model(inputs, outputs)
-            
+
         if not isinstance(outputs, (list, tuple)):
             outputs = [outputs]
             
@@ -43,27 +47,18 @@ class GloroNet(Model):
             raise ValueError(
                 f'only models with a single output are supported, but got '
                 f'{len(outputs)} outputs')
-        
+
         margin_layer = LipschitzMargin(
-            epsilon, 
-            model, 
-            num_iterations=num_iterations, 
-            maintain_state=maintain_state,
-            hardcoded_kW=hardcoded_kW)
+            epsilon, model, num_iterations=num_iterations)
 
         margin = margin_layer(*outputs)
         
         super().__init__(inputs, margin, **kwargs)
-        
+
         self._inputs = inputs
-        self._outputs = outputs
-        
+        self._output = outputs[0]
         self._margin_layer = margin_layer
         self._f = GloroNet.__ModelContainer(model)
-
-        self._lipschitz_constant_fn = K.function(
-            self._inputs,
-            [self._margin_layer._lipschitz_constant_tensor])
 
     @property
     def epsilon(self):
@@ -82,35 +77,47 @@ class GloroNet(Model):
         self._margin_layer.num_iterations = new_num_iterations
 
     @property
-    def maintain_state(self):
-        return self._margin_layer.maintain_state
-
-    @property
     def f(self):
         return self._f.model
 
-    def lipschitz_constant(self, X):
-        if not isinstance(X, (list, tuple)):
-            X = [X]
 
-        return self._lipschitz_constant_fn(X)[0]
+    def lipschitz_constant(self, X=None, y=None):
+        if X is None and y is None:
+            return self._margin_layer.lipschitz_constant(
+                tf.eye(self._output.shape[1]))
+
+        elif X is not None:
+            if not isinstance(X, (list, tuple)):
+                X = [X]
+
+            return self._margin_layer.lipschitz_constant(self.f(X))
+
+        else:
+            return self._margin_layer.lipschitz_constant(y)
 
     def predict_clean(self, *args, **kwargs):
         return self._f.model.predict(*args, **kwargs)
 
-    def freeze_lipschitz_constant(self, converge=True):
+    def freeze_lipschitz_constant(
+            self, 
+            converge=True, 
+            convergence_threshold=1e-4, 
+            max_tries=1000, 
+            batch_size=None,
+            verbose=False):
+
         if converge:
-            self.refresh_iterates(batch_size=100)
+            self.refresh_iterates(
+                converge=converge,
+                convergence_threshold=convergence_threshold,
+                max_tries=max_tries,
+                batch_size=batch_size,
+                verbose=verbose)
 
-        frozen = GloroNet(
-            epsilon=self.epsilon,
-            model=self._f.model,
-            num_iterations=0,
-            hardcoded_kW=K.get_value(self._margin_layer._kW))
+        self._margin_layer.freeze()
+        self.trainable = False
 
-        frozen.trainable = False
-
-        return frozen
+        return self
 
     def refresh_iterates(
             self, 
@@ -134,6 +141,28 @@ class GloroNet(Model):
 
         return self
 
+
+    # Overriding `keras.Model` functions.
+
+    def compile(self, **kwargs):
+        if 'loss' in kwargs:
+            if isinstance(kwargs['loss'], str):
+                kwargs['loss'] = get_loss(kwargs['loss'])
+
+        if 'metrics' in kwargs:
+            metrics = kwargs['metrics']
+            new_metrics = []
+
+            for metric in metrics:
+                if metric in GLORO_CUSTOM_OBJECTS:
+                    metric = GLORO_CUSTOM_OBJECTS[metric]
+
+                new_metrics.append(metric)
+
+            kwargs['metrics'] = new_metrics
+
+        super().compile(**kwargs)
+
     def fit(self, *args, update_iterates=True, **kwargs):
         if update_iterates:
             includes_update_iterates = False
@@ -150,26 +179,73 @@ class GloroNet(Model):
 
             if not includes_update_iterates:
                 kwargs['callbacks'] = [
-                    UpdatePowerIterates(verbose=False),
+                    UpdatePowerIterates(verbose=True),
                     *callbacks
                 ]
-
+        
         return super().fit(*args, **kwargs)
+
+    def save(self, file_name, overwrite=True):
+        if file_name.endswith('.h5'):
+            file_name = file_name[:-3]
+
+        elif file_name.endswith('.gloronet'):
+            file_name = file_name[:-9]
+
+        try:
+            os.mkdir(file_name)
+
+            self.f.save(f'{file_name}/f.h5')
+
+            with open(f'{file_name}/config.json', 'w') as json_file:
+                json.dump(self.get_config(), json_file)
+
+            with tarfile.open(f'{file_name}.gloronet', 'w:gz') as tar:
+                tar.add(file_name, arcname=os.path.basename(file_name))
+
+        finally:
+            shutil.rmtree(file_name)
+
+    @staticmethod
+    def load_model(file_name, custom_objects={}):
+        custom_objects = dict(GLORO_CUSTOM_OBJECTS.copy(), **custom_objects)
+
+        if file_name.endswith('.h5'):
+            file_name = file_name[:-3]
+
+        elif file_name.endswith('.gloronet'):
+            file_name = file_name[:-9]
+            
+        temp_dir = f'{file_name}___'
         
+        try:
+            os.mkdir(temp_dir)
+            
+            with tarfile.open(f'{file_name}.gloronet', 'r:gz') as tar:
+
+                for member in tar:
+                    if member.name.endswith('.h5'):
+                        tar.extract(member, f'{temp_dir}')
+
+                        model = tf.keras.models.load_model(
+                            f'{temp_dir}/{member.name}',
+                            custom_objects=custom_objects)
+
+                    elif member.name.endswith('.json'):
+                        with tar.extractfile(member) as f:
+                            config = json.load(f)
+        finally:
+            shutil.rmtree(temp_dir)
+
+        return GloroNet(model=model, **config)
+
     def get_config(self):
-        config = super().get_config()
-        config.update({
-            'epsilon': self.epsilon,
-            'model': self._f.model.get_config()
-        })
-        return config
-      
-    @classmethod
-    def from_config(cls, config):
-        model = Model.from_config(config['model'])
-        
-        return GloroNet(model=model, epsilon=config['epsilon'])
-        
+        return {
+            'epsilon': float(self.epsilon),
+            'num_iterations': int(self.num_iterations),
+        }
+
+
     class __ModelContainer(object):
         def __init__(self, model):
             self.model = model

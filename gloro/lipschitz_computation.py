@@ -1,6 +1,7 @@
 import tensorflow as tf
 
 from tensorflow.keras.layers import Add
+from tensorflow.keras.layers import AveragePooling2D
 
 import gloro
 
@@ -39,6 +40,9 @@ class LipschitzComputer(object):
 
         elif isinstance(layer, Add):
             return JoinLayerComputer(layer)
+
+        elif isinstance(layer, AveragePooling2D):
+            return AveragePoolingComputer(layer)
 
         else:
             return LipschitzComputer(layer)
@@ -195,3 +199,42 @@ class JoinLayerComputer(LipschitzComputer):
         lc[gloro.constants.SKIP_BRANCH] = 1.
 
         return result
+
+
+class AveragePoolingComputer(LipschitzComputer):
+    def __init__(self, layer):
+        super().__init__(layer)
+
+        W = tf.eye(layer.input.shape[-1])[None,None] * (
+            tf.ones(layer.pool_size)[:,:,None,None]) / (
+                layer.pool_size[0] * layer.pool_size[1])
+
+        x0 = tf.random.truncated_normal(
+            shape=(1,*layer.input_shape[1:]))
+
+        def body(i, x):
+            x = l2_normalize(x)
+            x_p = tf.nn.conv2d(
+                x, W,
+                strides=layer.strides,
+                padding=layer.padding.upper())
+            x = tf.nn.conv2d_transpose(
+                x_p, W, x.shape,
+                strides=layer.strides,
+                padding=layer.padding.upper())
+
+            return i + 1, x
+
+        _, x = tf.while_loop(lambda i, _: i < 100, body, [tf.constant(0), x0])
+
+        Wx = tf.nn.conv2d(
+            x, W, 
+            strides=layer.strides, 
+            padding=layer.padding.upper())
+
+        self._lc = tf.sqrt(
+            tf.reduce_sum(Wx**2.) / 
+            (tf.reduce_sum(x**2.) + gloro.constants.EPS))
+
+    def get_lipschitz_constant(self, **kwargs):
+        return self._lc

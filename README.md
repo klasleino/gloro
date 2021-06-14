@@ -70,10 +70,9 @@ gloronet = GloroNet(model=f, epsilon=0.5)
 ### Training GloRo Nets
 
 `GloroNet` models can be trained similarly to a standard Keras `Model` using the `fit` method.
-The `training` package provides several useful modules for training GloRo Nets.
+The `gloro.training` package provides several useful modules for training GloRo Nets.
 An example of training a `GloroNet` model is given below:
 ```python
-from gloro.training.callbacks import EpsilonScheduler
 from gloro.training.callbacks import UpdatePowerIterates
 from gloro.training.losses import Crossentropy
 from gloro.training.metrics import clean_acc
@@ -113,36 +112,19 @@ gloronet.fit(
         # this example, or it can be disabled by passing 
         # `update_iterates=False` to `fit`.
         UpdatePowerIterates(),
-
-        # It is often useful to begin with a small robustness radius and grow
-        # it over time so that the GloRo Net learns to make accurate 
-        # predictions in addition to robust ones. More detail on the schedule
-        # options (e.g., 'logarithmic') is provided below.
-        EpsilonScheduler('logarithmic')
     ])
 ```
 
-As noted above, the `EpsilonScheduler` callback can be configured with a few different schedule options, listed below:
+The `compile` method is set up to also accept string shorthands for the loss and metrics, so the above code can be written more concisely and with fewer imports:
+```python
+gloronet.compile(
+    optimizer='adam',
+    loss='crossentropy',
+    metrics=['clean_acc', 'vra'])
 
-* `'fixed'`
-
-  > This is essentially the same as having no schedule&mdash;epsilon will remain fixed during training.
-
-* `'linear'` 
-
-  > Epsilon is scaled linearly over the course of training from 0 to the value of epsilon initially set on the `GloroNet` object.
-
-* `'linear_half'`
-
-  > This is the same as `'linear'`, but the scaling takes place over the first half of training, and then epsilon remains fixed for the rest of training.
-
-* `'logarithmic'`
-
-  > Epsilon is increased over the course of training to reach the value of epsilon initially set on the `GloroNet` object by the end of training. As compared to `'linear'`, this schedule increases epsilon quickly at first, and decreases the rate of increase over time.
-
-* `'logarithmic_half'`
-
-  > this is the same as `'logarithmic'`, but the scaling takes place over the first half of training, and then epsilon remains fixed for the rest of training.
+gloronet.fit(X, Y, epochs=10, batch_size=16)
+```
+See `gloro.training.losses.get` for the available loss shorthands.
 
 GloRo Nets can also be trained using TRADES loss.
 The `Trades` loss function takes a parameter, `lam`, that represents the weight given to the robust part of the objective.
@@ -170,27 +152,29 @@ gloronet.fit(
     callbacks=[
         # It is often useful to begin with a small TRADES parameter and
         # increase it over time so that the GloRo Net learns to make accurate 
-        # predictions in addition to robust ones. The `TradesScheduler` 
-        # callback admits the same set of schedule options as
-        # `EpsilonScheduler`, described above.
+        # predictions in addition to robust ones.
         TradesScheduler('linear')
     ])
 ```
 
+#### Scheduler Callbacks
+The `gloro.training` package also provides several useful callbacks for scheduling the learning rate, TRADES parameter, etc., during training.
+See `gloro.training.callbacks` for the available scheduling callbacks, and `gloro.training.schedules` for the available schedule shorthands.
+
 ### More about the `GloroNet` Class
 
 #### Saving and Loading
-`GloroNet` models can be saved and loaded using the standard Keras model serialization API; however, to load a GloroNet, the `custom_objects` field has to be provided to Keras' `load_model` function.
-In order to make this more convenient, a constant dictionary containing all custom objects in the `gloro` library is provided.
+`GloroNet` models can be saved using the standard Keras model serialization API; however, to load a GloroNet, `GloroNet.load_model` should be used instead of `keras.models.load_model`. 
 For example:
 ```python
-from gloro import GLORO_CUSTOM_OBJECTS
+from gloro import GloroNet
 
+# The `gloro` library saves models with a '.gloronet' extension. This file
+# contains the underlying model instrumented by the GloRo Net, as well as
+# metadata associated with the `GloroNet` object.
+gloronet.save('my_model.gloronet')
 
-gloronet.save('gloronet.h5')
-
-loaded_gloronet = tf.keras.models.load_model(
-    'gloronet.h5', custom_objects=GLORO_CUSTOM_OBJECTS)
+loaded_gloronet = GloroNet.load_model('my_model.gloronet')
 ```
 
 #### `GloroNet` Properties and Methods
@@ -206,9 +190,9 @@ These properties are described below.
 
   > The underlying model instrumented by the GloRo Net. This property is read-only.
 
-* `lipschitz_constant(X)`
+* `lipschitz_constant()`
   
-  > Gives the Lipschitz constant for each of the points in `X`. The value in the position of the predicted class of each point is `-1` to signify that this value should be ignored.
+  > Gives the Lipschitz constant of for each pair of classes. The value in the diagonal is `-1` to signify that this value should be ignored.
 
 * `predict_clean(*args, **kwargs)`
   
@@ -216,7 +200,7 @@ These properties are described below.
 
 * `freeze_lipschitz_constant()`
 
-  > Converges the power-method iterates and then returns a new network where the Lipschitz constant is hard-coded rather than computed from the weights. The new model will make more efficient predictions, but it can no longer be trained.
+  > Converges the power-method iterates and then hard-codes the Lipschitz constant such that it no longer needs to be computed from the model parameters. The frozen model will make more efficient predictions, but it can no longer be trained.
 
 * `refresh_iterates()`
 

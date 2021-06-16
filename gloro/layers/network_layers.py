@@ -8,6 +8,9 @@ from tensorflow.keras.layers import Layer
 
 import gloro
 
+from gloro.utils import get_value
+from gloro.utils import set_value
+
 
 class MinMax(Layer):
     def __init__(self, absolute_value=False, **kwargs):
@@ -85,11 +88,11 @@ class Scaling(Layer):
 
     @property
     def w(self):
-        return K.get_value(self._weight)
+        return get_value(self._weight)
 
     @w.setter
     def w(self, new_w):
-        K.set_value(self._weight, new_w)
+        set_value(self._weight, new_w)
         
     def call(self, x):
         return self._weight * x
@@ -111,11 +114,11 @@ class Bias(Layer):
 
     @property
     def b(self):
-        return K.get_value(self._bias)
+        return get_value(self._bias)
 
     @b.setter
     def b(self, new_b):
-        K.set_value(self._bias, new_b)
+        set_value(self._bias, new_b)
         
     def call(self, x):
         return self._bias + x
@@ -134,6 +137,8 @@ class ResnetBlock(object):
     _global_counter = 0
 
     identifier = 'ResnetBlock'
+    join_identifier = 'join'
+    skip_identifier = 'skip'
 
     def __init__(
             self, 
@@ -226,9 +231,9 @@ class ResnetBlock(object):
                     if (i == 1 and (not self._use_invertible_downsample)) else 
                     (1, 1)),
                 padding='same',
-                use_bias=not self.use_fixup_weight_and_bias,
+                use_bias=not self._use_fixup_weight_and_bias,
                 kernel_initializer=self._initializer,
-                name=f'{ResnetBlock.identifier}{self._counter}_conv{i}')
+                name=f'{self._block_name}_conv{i}')
             next_layer._gloro_branch = gloro.constants.RESIDUAL_BRANCH
 
             out = next_layer(out)
@@ -263,7 +268,8 @@ class ResnetBlock(object):
             i += 1
 
         if self._identity_skip:
-            next_layer = Add(name=f'{self._block_name}_join')
+            next_layer = Add(
+                name=f'{self._block_name}_{ResnetBlock.join_identifier}')
             next_layer._gloro_branch = gloro.constants.MAIN_BRANCH
 
             out = next_layer([input_tensor, out])
@@ -274,17 +280,18 @@ class ResnetBlock(object):
                 1, 
                 strides=(self._stride1, self._stride1),
                 kernel_initializer=self._initializer,
-                name=f'{self._block_name}_conv_skip')
+                name=f'{self._block_name}_conv_{ResnetBlock.skip_identifier}')
             next_layer._gloro_branch = gloro.constants.SKIP_BRANCH
 
             conv_skip = next_layer(input_tensor)
 
-            next_layer = Add(name=f'{self._block_name}_join')
+            next_layer = Add(
+                name=f'{self._block_name}_{ResnetBlock.join_identifier}')
             next_layer._gloro_branch = gloro.constants.MAIN_BRANCH
 
             out = next_layer([conv_skip, out])
 
-        next_layer = self._activation(f'{self._block_name}_activation{i}')
+        next_layer = self._activation(None)
         next_layer._gloro_branch = gloro.constants.MAIN_BRANCH
 
         return next_layer(out)

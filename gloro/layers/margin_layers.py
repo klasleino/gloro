@@ -158,7 +158,7 @@ class LipschitzMargin(Layer):
             if verbose:
                 print(
                     f'power method converged in {(i+1)*self.num_iterations} '
-                    f'iterations to {tf.keras.backend.get_value(k):.3f}')
+                    f'iterations to {get_value(k):.3f}')
 
             if batch_size:
                 self.num_iterations = old_num_iterations

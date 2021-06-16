@@ -5,6 +5,7 @@ from tensorflow.keras.layers import AveragePooling2D
 
 import gloro
 
+from gloro.layers.network_layers import ResnetBlock
 from gloro.utils import l2_normalize
 
 
@@ -15,6 +16,22 @@ class LipschitzComputer(object):
 
         if hasattr(layer, '_gloro_branch'):
             self._branch = layer._gloro_branch
+
+        elif layer.name.startswith(ResnetBlock.identifier):
+            # TODO: this is a little less nice than reading a `_gloro_branch` 
+            #   property, but it persists by default when the layers are saved,
+            #   whereas we would need extra instrumentation to save the
+            #   `_gloro_branch` property. Ultimately we should probably pick
+            #   just one method (either name-based or property-based).
+            if ResnetBlock.join_identifier in layer.name:
+                self._branch = gloro.constants.MAIN_BRANCH
+
+            elif ResnetBlock.skip_identifier in layer.name:
+                self._branch = gloro.constants.SKIP_BRANCH
+
+            else:
+                self._branch = gloro.constants.RESIDUAL_BRANCH
+
         else:
             self._branch = gloro.constants.MAIN_BRANCH
 

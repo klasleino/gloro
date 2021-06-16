@@ -6,7 +6,7 @@ This repository implements the method described in this [paper](https://arxiv.or
 @INPROCEEDINGS{leino21gloro,
     title = {Globally-Robust Neural Networks},
     author = {Klas Leino and Zifan Wang and Matt Fredrikson},
-    booktitle = {International Conference on Machine Learning (ICML)}
+    booktitle = {International Conference on Machine Learning (ICML)},
     year = {2021},
 }
 ```

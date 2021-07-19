@@ -85,6 +85,9 @@ class VariableScheduler(Callback):
                 self.__prev + (self.__current - self.__prev) * (
                     batch / self._num_steps))
 
+    def on_train_end(self, logs=None):
+        self.set_var(self._test_value)
+
 
 class EpsilonScheduler(VariableScheduler):
 

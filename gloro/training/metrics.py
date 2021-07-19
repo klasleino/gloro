@@ -37,3 +37,10 @@ def vra(y_true, y_pred):
         (tf.equal(tf.shape(y_true)[1], 1), 
             lambda: vra_sparse(y_true, y_pred))], 
         default=lambda: vra_cat(y_true, y_pred))
+
+
+def rejection_rate(y_true, y_pred):
+    bot_index = tf.cast(tf.shape(y_pred)[1] - 1, 'int64')
+
+    return tf.reduce_mean(tf.cast(
+        tf.argmax(y_pred, axis=1) == bot_index, 'float32'))

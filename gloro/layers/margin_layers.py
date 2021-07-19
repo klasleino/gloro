@@ -121,13 +121,13 @@ class LipschitzMargin(Layer):
         return tf.concat([y, y_bot], axis=1)
 
     def refresh_iterates(
-            self, 
-            converge=True, 
-            convergence_threshold=1e-4, 
-            max_tries=1000, 
-            batch_size=None,
-            verbose=False):
-
+        self, 
+        converge=True, 
+        convergence_threshold=1e-4, 
+        max_tries=1000, 
+        batch_size=None,
+        verbose=False,
+    ):
         if self._lc_frozen:
             return self
 
@@ -149,8 +149,8 @@ class LipschitzMargin(Layer):
             k = self._lc()
 
             while i < max_tries and (
-                    k_prev is None or abs(k - k_prev) > convergence_threshold):
-
+                k_prev is None or abs(k - k_prev) > convergence_threshold
+            ):
                 k_prev = k
                 k = self._lc()
                 i += 1

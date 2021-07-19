@@ -15,14 +15,14 @@ from gloro.utils import set_value
 class VariableScheduler(Callback):
 
     def __init__(
-            self, 
-            variable_name,
-            schedule_string='fixed', 
-            test_value=None,
-            base_value=None, 
-            interpolate=True,
-            verbose=True):
-
+        self, 
+        variable_name,
+        schedule_string='fixed', 
+        test_value=None,
+        base_value=None, 
+        interpolate=True,
+        verbose=True,
+    ):
         super().__init__()
 
         self._name = variable_name
@@ -89,13 +89,13 @@ class VariableScheduler(Callback):
 class EpsilonScheduler(VariableScheduler):
 
     def __init__(
-            self,
-            schedule_string='fixed', 
-            test_value=None,
-            base_value=None, 
-            interpolate=True,
-            verbose=True):
-
+        self,
+        schedule_string='fixed', 
+        test_value=None,
+        base_value=None, 
+        interpolate=True,
+        verbose=True,
+    ):
         super().__init__(
             'epsilon', 
             schedule_string=schedule_string,
@@ -114,13 +114,13 @@ class EpsilonScheduler(VariableScheduler):
 class TradesScheduler(VariableScheduler):
 
     def __init__(
-            self,
-            schedule_string='fixed', 
-            test_value=None,
-            base_value=None, 
-            interpolate=True,
-            verbose=True):
-
+        self,
+        schedule_string='fixed', 
+        test_value=None,
+        base_value=None, 
+        interpolate=True,
+        verbose=True,
+    ):
         super().__init__(
             'TRADES parameter', 
             schedule_string=schedule_string,
@@ -159,13 +159,13 @@ class TradesScheduler(VariableScheduler):
 class LrScheduler(VariableScheduler):
 
     def __init__(
-            self,
-            schedule_string='fixed', 
-            test_value=None,
-            base_value=None, 
-            interpolate=True,
-            verbose=True):
-
+        self,
+        schedule_string='fixed', 
+        test_value=None,
+        base_value=None, 
+        interpolate=True,
+        verbose=True,
+    ):
         super().__init__(
             'learning rate', 
             schedule_string=schedule_string,
@@ -183,13 +183,13 @@ class LrScheduler(VariableScheduler):
 
 class UpdatePowerIterates(Callback):
     def __init__(
-            self, 
-            convergence_threshold=1e-4,
-            short_convergence_threshold=1e-2,
-            iteration_batch_size=100, 
-            do_initial_convergence=True,
-            verbose=True):
-
+        self, 
+        convergence_threshold=1e-4,
+        short_convergence_threshold=1e-2,
+        iteration_batch_size=100, 
+        do_initial_convergence=True,
+        verbose=True,
+    ):
         super().__init__()
 
         self._convergence_threshold = convergence_threshold

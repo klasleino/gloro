@@ -23,8 +23,8 @@ def _no_interp(start, duration):
 
 
 def _parse_section(
-        section, duration, is_start=False, is_end=False, interpolated=False):
-
+    section, duration, is_start=False, is_end=False, interpolated=False
+):
     if not (section.startswith('[') and section.endswith(']')):
         raise ValueError(f'Invalid section: {section}')
 

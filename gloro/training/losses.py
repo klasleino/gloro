@@ -55,13 +55,13 @@ class Crossentropy(Loss):
 class Trades(Loss):
 
     def __init__(
-            self, 
-            lam=1., 
-            sparse=False, 
-            robust_loss_string='kl_divergence', 
-            temperature=1.,
-            **kwargs):
-
+        self, 
+        lam=1., 
+        sparse=False, 
+        robust_loss_string='kl_divergence', 
+        temperature=1.,
+        **kwargs,
+    ):
         super().__init__(**kwargs)
 
         self._lam = tf.Variable(lam, trainable=False)

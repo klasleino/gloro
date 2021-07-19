@@ -141,17 +141,17 @@ class ResnetBlock(object):
     skip_identifier = 'skip'
 
     def __init__(
-            self, 
-            filters, 
-            kernel_sizes=(1,3,1),
-            stride1=2,
-            depth=None, 
-            activation='relu',
-            identity_skip=False,
-            use_invertible_downsample=False,
-            use_fixup_weight_and_bias=False,
-            kernel_initializer='orthogonal'):
-
+        self, 
+        filters, 
+        kernel_sizes=(1,3,1),
+        stride1=2,
+        depth=None, 
+        activation='relu',
+        identity_skip=False,
+        use_invertible_downsample=False,
+        use_fixup_weight_and_bias=False,
+        kernel_initializer='orthogonal',
+    ):
         n_filters = len(filters) if isinstance(filters, (list, tuple)) else None
         n_kernels = (
             len(kernel_sizes) if isinstance(kernel_sizes, (list, tuple)) else 

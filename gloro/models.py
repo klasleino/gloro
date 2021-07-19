@@ -14,14 +14,14 @@ from gloro.training.losses import get as get_loss
 
 class GloroNet(Model):
     def __init__(
-            self, 
-            inputs=None, 
-            outputs=None, 
-            epsilon=None, 
-            num_iterations=5,
-            model=None, 
-            **kwargs):
-            
+        self, 
+        inputs=None, 
+        outputs=None, 
+        epsilon=None, 
+        num_iterations=5,
+        model=None, 
+        **kwargs,
+    ):
         if epsilon is None:
             raise ValueError('`epsilon` is required')
         
@@ -99,13 +99,13 @@ class GloroNet(Model):
         return self._f.model.predict(*args, **kwargs)
 
     def freeze_lipschitz_constant(
-            self, 
-            converge=True, 
-            convergence_threshold=1e-4, 
-            max_tries=1000, 
-            batch_size=None,
-            verbose=False):
-
+        self, 
+        converge=True, 
+        convergence_threshold=1e-4, 
+        max_tries=1000, 
+        batch_size=None,
+        verbose=False,
+    ):
         if converge:
             self.refresh_iterates(
                 converge=converge,
@@ -120,13 +120,13 @@ class GloroNet(Model):
         return self
 
     def refresh_iterates(
-            self, 
-            converge=True, 
-            convergence_threshold=1e-4, 
-            max_tries=1000, 
-            batch_size=None,
-            verbose=False):
-
+        self, 
+        converge=True, 
+        convergence_threshold=1e-4, 
+        max_tries=1000, 
+        batch_size=None,
+        verbose=False,
+    ):
         self._margin_layer.refresh_iterates(
             converge=converge,
             convergence_threshold=convergence_threshold,

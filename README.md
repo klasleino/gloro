@@ -29,6 +29,10 @@ pip install -e .
 
 # Usage
 
+### Examples
+
+Example training scripts can be found in the `training` directory under [`tools`](https://github.com/klasleino/gloro/tree/master/tools)
+
 ### Constructing GloRo Nets
 
 The `GloroNet` class subclasses `tf.keras.models.Model`.
@@ -205,7 +209,6 @@ These properties are described below.
 * `refresh_iterates()`
 
   > Refreshes and converges the power-method iterates. This should be called before test-time certification. If the model was trained with the `UpdatePowerIterates` callback, this will have been called automatically at the end of training.
-
 
 # Main Contributers
 

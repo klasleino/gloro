@@ -3,8 +3,12 @@ import os
 from setuptools import setup, find_packages
 
 
+print('>>>> files in pwd')
+print(os.listdir('.'))
+
 with open('README.md', 'r', encoding='utf-8') as f:
     long_description = f.read()
+    print('>>>> got description')
 
 def read(rel_path):
     here = os.path.abspath(os.path.dirname(__file__))
@@ -21,6 +25,7 @@ def get_version(rel_path):
     raise RuntimeError('Unable to find version string.')
 
 with open('requirements.txt', 'r') as requirements:
+    print('>>>> got requirements')
     setup(
         name='gloro',
         version=get_version('gloro/__init__.py'),

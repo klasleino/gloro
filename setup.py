@@ -3,8 +3,6 @@ import os
 from setuptools import setup, find_packages
 
 
-print(os.listdir('.'))
-
 with open('README.md', 'r', encoding='utf-8') as f:
     long_description = f.read()
 

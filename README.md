@@ -1,5 +1,5 @@
 # gloro
-Library for training globally-robust neural networks.
+Library for training provably-robust neural networks.
 
 This repository implements the method described in this [paper](https://arxiv.org/pdf/2102.08452.pdf) (appearing in ICML 2021), and is maintained by the authors, Klas Leino, Zifan Wang, and Matt Fredrikson. If you use this code, please use the following citation:
 ```bibtex
@@ -10,6 +10,28 @@ This repository implements the method described in this [paper](https://arxiv.or
     year = {2021},
 }
 ```
+
+The `gloro/relaxations` directory implements the extensions described in this [paper](https://arxiv.org/pdf/2106.06624.pdf) (appearing in NIPS 2021). If you use code from this directory, please additionally cite:
+```bibtex
+@INPROCEEDINGS{leino2021relaxing,
+  title = {Relaxing Local Robustness},
+  author = {Klas Leino and Matt Fredrikson},
+  booktitle = {Neural Information Processing Systems (NIPS)},
+  year = {2021}
+}
+```
+
+# Best Results
+
+For quick reference, we include our current best VRA (verified-robust accuracy) results here (these are more up-to-date and may surpass the results reported in the original paper). These results currently represent the state-of-the-art for deterministic L2 robustness certification. See `tools` for scripts to reproduce these results.
+
+dataset       | radius | architecture | VRA
+--------------|--------|--------------|------
+MNIST         | 0.3    | 2C2F         | 0.957
+MNIST         | 1.58   | 4C3F         | 0.628
+CIFAR-10      | 0.141  | 6C2F         | 0.600
+Tiny-Imagenet | 0.141  | 8C2F         | 0.224
+
 
 # Installation
 

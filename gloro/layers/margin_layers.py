@@ -1,5 +1,6 @@
 import numpy as np
 import tensorflow as tf
+import tensorflow.keras.backend as K
 
 from tensorflow.keras.layers import Layer
 
@@ -13,7 +14,8 @@ class LipschitzMargin(Layer):
     def __init__(self, epsilon, model, num_iterations=5, norm='l2', **kwargs):
         super().__init__(**kwargs)
 
-        self._epsilon = tf.Variable(epsilon, name='epsilon', trainable=False)
+        self._epsilon = tf.Variable(
+            epsilon, dtype=K.floatx(), name='epsilon', trainable=False)
         self._num_iterations = tf.Variable(
             num_iterations, name='num_iterations', trainable=False)
 

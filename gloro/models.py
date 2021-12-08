@@ -6,7 +6,8 @@ import tensorflow as tf
 
 from tensorflow.keras.models import Model
 
-from gloro.constants import GLORO_CUSTOM_OBJECTS
+import gloro
+
 from gloro.layers.margin_layers import LipschitzMargin
 from gloro.training.callbacks import UpdatePowerIterates
 from gloro.training.losses import get as get_loss
@@ -20,8 +21,15 @@ class GloroNet(Model):
         epsilon=None, 
         num_iterations=5,
         model=None, 
+        _skip_init=False,
         **kwargs,
     ):
+        if _skip_init:
+            # We have to do this because keras requires __init__ to be called on
+            # *all* subclasses.
+            super().__init__(inputs, outputs, **kwargs)
+            return
+
         if epsilon is None:
             raise ValueError('`epsilon` is required')
         
@@ -58,7 +66,7 @@ class GloroNet(Model):
         self._inputs = inputs
         self._output = outputs[0]
         self._margin_layer = margin_layer
-        self._f = GloroNet.__ModelContainer(model)
+        self._f = GloroNet._ModelContainer(model)
 
     @property
     def epsilon(self):
@@ -154,8 +162,8 @@ class GloroNet(Model):
             new_metrics = []
 
             for metric in metrics:
-                if metric in GLORO_CUSTOM_OBJECTS:
-                    metric = GLORO_CUSTOM_OBJECTS[metric]
+                if metric in gloro.constants.GLORO_CUSTOM_OBJECTS:
+                    metric = gloro.constants.GLORO_CUSTOM_OBJECTS[metric]
 
                 new_metrics.append(metric)
 
@@ -206,9 +214,9 @@ class GloroNet(Model):
         finally:
             shutil.rmtree(file_name)
 
-    @staticmethod
-    def load_model(file_name, custom_objects={}):
-        custom_objects = dict(GLORO_CUSTOM_OBJECTS.copy(), **custom_objects)
+    @classmethod
+    def load_model(cls, file_name, custom_objects={}, converge=True):
+        custom_objects = dict(gloro.constants.GLORO_CUSTOM_OBJECTS.copy(), **custom_objects)
 
         if file_name.endswith('.h5'):
             file_name = file_name[:-3]
@@ -237,7 +245,10 @@ class GloroNet(Model):
         finally:
             shutil.rmtree(temp_dir)
 
-        return GloroNet(model=model, **config)
+        if converge:
+            return cls(model=model, **config).refresh_iterates()
+        else:
+            return cls(model=model, **config)
 
     def get_config(self):
         return {
@@ -246,6 +257,6 @@ class GloroNet(Model):
         }
 
 
-    class __ModelContainer(object):
+    class _ModelContainer(object):
         def __init__(self, model):
             self.model = model

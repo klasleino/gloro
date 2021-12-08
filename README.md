@@ -33,6 +33,12 @@ CIFAR-10      | 0.141  | 6C2F         | 0.600
 Tiny-Imagenet | 0.141  | 8C2F         | 0.224
 
 
+# Resources
+
+For more on the theory behind GloRo Nets, check out our [blog post](https://towardsdatascience.com/training-provably-robust-neural-networks-1e15f2d80be2) for a high-level introduction, or read our [original paper](https://arxiv.org/pdf/2102.08452.pdf) for the technical details and proofs.
+For interactive examples of this library in action, see our notebooks on [training GloRo Nets](https://colab.research.google.com/drive/1Z6Zrnfp9caRN3OPYy306MfnCdGEx5OCT?usp=sharing) and [using relaxed robustness](https://colab.research.google.com/drive/1TOsLT9Nj1lxPm4DKSGf-QdYhS6WBBhdf?usp=sharing).
+
+
 # Installation
 
 Simply install via pip:

@@ -113,7 +113,7 @@ class LipschitzMarginRtk(LipschitzMargin):
                 axis=1),
             'float32')[:,None]
 
-        y_bot = tf.reduce_max(y, axis=1) - m
+        y_bot = tf.stop_gradient(tf.reduce_max(y, axis=1)) - m
 
         return tf.concat([y, y_bot[:,None]], axis=1), all_guarantees, loosest_k
 

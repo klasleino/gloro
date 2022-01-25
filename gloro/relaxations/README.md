@@ -18,4 +18,4 @@ This directory contains additional code implementing the extensions described in
 }
 ```
 
-For an interactive example on how this code can be used, check out this [notebook](https://colab.research.google.com/drive/1TOsLT9Nj1lxPm4DKSGf-QdYhS6WBBhdf?usp=sharing)
+For an interactive example on how this code can be used, check out this [notebook](https://colab.research.google.com/drive/1TOsLT9Nj1lxPm4DKSGf-QdYhS6WBBhdf?usp=sharing).

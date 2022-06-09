@@ -17,3 +17,5 @@ python train_gloro.py \
     --lr_schedule decay_after_half_to_0.000001 \
     --augmentation none
 ```
+
+To run experiments on Tiny-Imagenet, you must provide a path to `.npy` files containing the train/test data/labels. These processed files can be downloaded [here](https://drive.google.com/file/d/1YuaNDNgHDW1hhIajKCZ6a8symm3-niCh/view?usp=sharing). To use, unzip the directory to a location of your choice and then set the "TINY_IMAGENET_LOCATION" environment variable to point to the unzipped directory.

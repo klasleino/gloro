@@ -74,12 +74,19 @@ class LipschitzMargin(Layer):
         self._kW = lambda: self._lc() * self._W
 
     def _get_yj_j_Kij(self, y):
+        """
+        `j` is the index of the predicted class, and `y_j` is the corresponding
+        max logit value. `y_j` has shape (None, 1).
 
+        `K_ij` is the Lipschitz constant for the function $f_j(x) - f_i(x)$ for
+        i != j. That is, the ith entry of `K_ij` contains the Lipschitz constant
+        of $f_j(x) - f_i(x)$, where `j` is as defined above. `K_ij` has shape
+        (None, m).
+        """
         kW = self._kW()
 
         j = tf.argmax(y, axis=1)
         y_j = tf.reduce_max(y, axis=1, keepdims=True)
-        where_not_j = tf.not_equal(y, y_j)
 
         # Get the weight column of the predicted class.
         kW_j = tf.gather(tf.transpose(kW), j)
@@ -101,6 +108,23 @@ class LipschitzMargin(Layer):
             tf.equal(y, y_j), 
             tf.zeros_like(K_ij) - 1., 
             K_ij)
+
+    def certified_radius(self, y):
+
+        y_j, j, K_ij = self._get_yj_j_Kij(y)
+
+        # y.shape: (None, m); y_j.shape: (None, 1)
+
+        margins = y_j - y # shape: (None, m)
+
+        # This is a certified lower bound on the distance from the point to the
+        # boundary with class i, where i != j.
+        radius_i = tf.where(
+            tf.equal(y, y_j),
+            np.infty + tf.zeros_like(y),
+            margins / K_ij)
+
+        return tf.reduce_min(radius_i, axis=1)
 
     def call(self, y):
         

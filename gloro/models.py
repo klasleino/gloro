@@ -103,8 +103,17 @@ class GloroNet(Model):
         else:
             return self._margin_layer.lipschitz_constant(y)
 
+    def certified_radius(self, x):
+        return self._margin_layer.certified_radius(self.f(x))
+
     def predict_clean(self, *args, **kwargs):
         return self._f.model.predict(*args, **kwargs)
+
+    def predict_with_certified_radius(self, x):
+        y_pred = self.f(x)
+        radius = self._margin_layer.certified_radius(y_pred)
+
+        return y_pred.numpy(), radius.numpy()
 
     def freeze_lipschitz_constant(
         self, 

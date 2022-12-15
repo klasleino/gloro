@@ -8,7 +8,6 @@ from gloro.lipschitz_computation import DenseLayerComputer
 class LayerLipschitzConstants:
 
     def test_dense_layer_computer_orthogonal(self, layers):
-        print('test_dense_layer_computer_orthogonal')
         lc = self.tensors.to_np(
             DenseLayerComputer(layers.orthonormal_dense(), 100)
                 .get_lipschitz_constant()

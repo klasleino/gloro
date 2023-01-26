@@ -7,7 +7,7 @@ This repository implements the method described in this [paper](https://arxiv.or
     title = {Globally-Robust Neural Networks},
     author = {Klas Leino and Zifan Wang and Matt Fredrikson},
     booktitle = {International Conference on Machine Learning (ICML)},
-    year = {2021},
+    year = {2021}
 }
 ```
 
@@ -25,12 +25,17 @@ The `gloro/relaxations` directory implements the extensions described in this [p
 
 For quick reference, we include our current best VRA (verified-robust accuracy) results here (these are more up-to-date and may surpass the results reported in the original paper). These results currently represent the state-of-the-art for deterministic L2 robustness certification. See `tools` for scripts to reproduce these results.
 
-dataset       | radius | architecture | VRA
---------------|--------|--------------|------
-MNIST         | 0.3    | 2C2F         | 0.957
-MNIST         | 1.58   | 4C3F         | 0.628
-CIFAR-10      | 0.141  | 6C2F         | 0.600
-Tiny-Imagenet | 0.141  | 8C2F         | 0.224
+dataset       | radius | architecture     | VRA
+--------------|--------|------------------|----------
+MNIST         | 0.3    | Conv 2C2F        | **0.957**
+MNIST         | 1.58   | Conv 4C3F        | **0.628**
+CIFAR-10      | 0.141  | Conv 6C2F        | 0.600
+CIFAR-10      | 0.141  | LiResNet 12L256W | **0.651**
+CIFAR-100     | 0.141  | LiResNet 12L256W | **0.363**
+Tiny-Imagenet | 0.141  | Conv 8C2F        | 0.224
+Tiny-Imagenet | 0.141  | LiResNet 12L256W | **0.292**
+Imagenet      | 1.0    | LiResNet 12L588W | **0.142**
+
 
 
 # Resources

@@ -52,7 +52,8 @@ class VariableScheduler(Callback):
             duration=self.params['epochs'], 
             base_value=(
                 self._base_value if self._base_value is not None else
-                self.get_var()))
+                self.get_var()),
+        )
 
         if self._test_value is None:
             self._test_value = self.get_var()
@@ -83,7 +84,8 @@ class VariableScheduler(Callback):
         if self._interpolate_between_epochs:
             self.set_var(
                 self.__prev + (self.__current - self.__prev) * (
-                    batch / self._num_steps))
+                    batch / self._num_steps)
+            )
 
     def on_train_end(self, logs=None):
         self.set_var(self._test_value)
@@ -105,7 +107,8 @@ class EpsilonScheduler(VariableScheduler):
             test_value=test_value,
             base_value=base_value,
             interpolate=interpolate,
-            verbose=verbose)
+            verbose=verbose,
+        )
 
     def get_var(self):
         return self.model.epsilon
@@ -130,7 +133,8 @@ class TradesScheduler(VariableScheduler):
             test_value=test_value,
             base_value=base_value,
             interpolate=interpolate,
-            verbose=verbose)
+            verbose=verbose,
+        )
 
     def get_var(self):
         if isinstance(self.model.loss, dict):
@@ -141,7 +145,8 @@ class TradesScheduler(VariableScheduler):
         # Make sure that the model is actually using TRADES loss.
         if not isinstance(loss, Trades):
             raise ValueError(
-                '`TradesScheduler` can only be used with `Trades` loss.')
+                '`TradesScheduler` can only be used with `Trades` loss.'
+            )
 
         return loss.lam
 
@@ -154,7 +159,8 @@ class TradesScheduler(VariableScheduler):
         # Make sure that the model is actually using TRADES loss.
         if not isinstance(loss, Trades):
             raise ValueError(
-                '`TradesScheduler` can only be used with `Trades` loss.')
+                '`TradesScheduler` can only be used with `Trades` loss.'
+            )
 
         loss.lam = value
 
@@ -175,7 +181,8 @@ class LrScheduler(VariableScheduler):
             test_value=test_value,
             base_value=base_value,
             interpolate=interpolate,
-            verbose=verbose)
+            verbose=verbose,
+        )
 
     def get_var(self):
         return get_value(self.model.optimizer.learning_rate)
@@ -189,7 +196,7 @@ class UpdatePowerIterates(Callback):
         self, 
         convergence_threshold=1e-4,
         short_convergence_threshold=1e-2,
-        iteration_batch_size=100, 
+        max_convergence_attempts=100,
         do_initial_convergence=True,
         verbose=True,
     ):
@@ -197,7 +204,7 @@ class UpdatePowerIterates(Callback):
 
         self._convergence_threshold = convergence_threshold
         self._short_convergence_threshold = short_convergence_threshold
-        self._batch_size = iteration_batch_size
+        self._max_attempts = max_convergence_attempts
         self._do_initial_convergence = do_initial_convergence
         self._verbose = verbose
 
@@ -209,26 +216,26 @@ class UpdatePowerIterates(Callback):
 
         if self._do_initial_convergence:
 
-            self._print('---- refreshing iterates ----')
+            self._print('---- converging iterates ----')
 
             start = time()
 
-            self.model.refresh_iterates(
-                convergence_threshold=self._short_convergence_threshold,
-                batch_size=self._batch_size,
-                verbose=self._verbose)
+            self.model.run_lc_to_convergence(
+                threshold=self._short_convergence_threshold,
+                max_tries=self._max_attempts,
+            )
 
             self._print(f'   > done: {(time() - start):.2f} seconds')
 
     def on_test_begin(self, logs=None):
-        self._print('\n---- refreshing iterates ----')
+        self._print('\n---- converging iterates ----')
 
         start = time()
 
-        self.model.refresh_iterates(
-            convergence_threshold=self._short_convergence_threshold,
-            batch_size=self._batch_size,
-            verbose=self._verbose)
+        self.model.run_lc_to_convergence(
+            threshold=self._short_convergence_threshold,
+            max_tries=self._max_attempts,
+        )
 
         self._print(f'   > done: {(time() - start):.2f} seconds')
 
@@ -239,24 +246,24 @@ class UpdatePowerIterates(Callback):
     
     def on_epoch_end(self, epoch, logs=None):
         if not self._converged:
-            self._print('\n---- refreshing iterates ----')
+            self._print('\n---- converging iterates ----')
 
             start = time()
 
-            self.model.refresh_iterates(
-                convergence_threshold=self._short_convergence_threshold,
-                batch_size=self._batch_size,
-                verbose=self._verbose)
+            self.model.run_lc_to_convergence(
+                threshold=self._short_convergence_threshold,
+                max_tries=self._max_attempts,
+            )
 
             self._print(f'   > done: {(time() - start):.2f} seconds')
 
     def on_train_end(self, logs=None):
-        self._print('---- refreshing iterates precisely ----')
+        self._print('---- converging iterates precisely and freezing ----')
 
         start = time()
-        self.model.refresh_iterates(
-            convergence_threshold=self._convergence_threshold,
-            batch_size=self._batch_size,
-            verbose=self._verbose)
+        self.model.freeze_lc(
+            threshold=self._convergence_threshold,
+            max_tries=self._max_attempts * 2,
+        )
 
         self._print(f'   > done: {(time() - start):.2f} seconds')

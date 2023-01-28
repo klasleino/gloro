@@ -65,13 +65,15 @@ def train_gloro(
         if '.' in architecture:
             architecture, params = architecture.split('.', 1)
 
+        # TODO: here is where we should use `power_iterations`.
         architecture = getattr(architectures, architecture)(
-            input_shape, num_classes, **json.loads(params))
+            input_shape, num_classes, **json.loads(params)
+        )
 
     except:
         raise ValueError(f'unknown architecture: {_orig_architecture}')
 
-    g = GloroNet(*architecture, epsilon, num_iterations=power_iterations)
+    g = GloroNet(*architecture, epsilon)
 
     if verbose:
         g.summary()
@@ -82,8 +84,8 @@ def train_gloro(
     g.compile(
         loss=losses.get(loss),
         optimizer=get_optimizer(optimizer, lr), 
-        metrics=[clean_acc, vra, rejection_rate])
-
+        metrics=[clean_acc, vra, rejection_rate],
+    )
     g.fit(
         train,
         epochs=epochs, 
@@ -91,7 +93,8 @@ def train_gloro(
         callbacks=[
             EpsilonScheduler(epsilon_schedule),
             LrScheduler(lr_schedule),
-        ] + ([TradesScheduler(trades_schedule)] if trades_schedule else []))
+        ] + ([TradesScheduler(trades_schedule)] if trades_schedule else []),
+    )
 
     return g
 
@@ -137,7 +140,8 @@ if __name__ == '__main__':
             optimizer=optimizer,
             lr=lr,
             lr_schedule=lr_schedule,
-            trades_schedule=trades_schedule)
+            trades_schedule=trades_schedule,
+        )
 
         # Evaluate the model.
         train, test, metadata = get_data(dataset, batch_size, augmentation)

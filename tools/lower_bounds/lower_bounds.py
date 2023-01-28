@@ -29,7 +29,8 @@ def lipschitz_lb(f, X1, X2, iterations=1000, verbose=True):
             # X1 is the reference point for determining the top class.
             original_predictions = tf.cast(
                 tf.equal(y1, tf.reduce_max(y1, axis=1, keepdims=True)), 
-                'float32')
+                'float32',
+            )
             
             # This takes the logit at the top class for both X1 and X2.
             y1_j = tf.reduce_sum(
@@ -43,7 +44,8 @@ def lipschitz_lb(f, X1, X2, iterations=1000, verbose=True):
             axes = tuple((tf.range(len(X1.shape) - 1) + 1).numpy())
             
             L = tf.abs(margin1 - margin2) / (tf.sqrt(
-                tf.reduce_sum((X1 - X2)**2, axis=axes)) + EPS)[:,None]
+                tf.reduce_sum((X1 - X2)**2, axis=axes)) + EPS
+            )[:,None]
 
             loss = -tf.reduce_max(L, axis=1)
             
@@ -97,10 +99,12 @@ def local_lipschitz_lb(f, X1, X2, eps, iterations=1000, verbose=True):
 
             X1.assign(
                 (X0 + eps * delta1 / (dist1 + EPS)) * where_dist_gt_eps1 + 
-                X1 * (1 - where_dist_gt_eps1))
+                X1 * (1 - where_dist_gt_eps1)
+            )
             X2.assign(
                 (X0 + eps * delta2 / (dist2 + EPS)) * where_dist_gt_eps2 + 
-                X2 * (1 - where_dist_gt_eps2))
+                X2 * (1 - where_dist_gt_eps2)
+            )
 
             y1 = f(X1)
             y2 = f(X2)
@@ -110,7 +114,8 @@ def local_lipschitz_lb(f, X1, X2, eps, iterations=1000, verbose=True):
             # X0 is the reference point for determining the top class.
             original_predictions = tf.cast(
                 tf.equal(y0, tf.reduce_max(y0, axis=1, keepdims=True)), 
-                'float32')
+                'float32',
+            )
             
             # This takes the logit at the top class for both X1 and X2.
             y1_j = tf.reduce_sum(
@@ -122,7 +127,8 @@ def local_lipschitz_lb(f, X1, X2, eps, iterations=1000, verbose=True):
             margin2 = y2_j - y2
 
             L = tf.abs(margin1 - margin2) / (tf.sqrt(
-                tf.reduce_sum((X1 - X2)**2, axis=axes)) + EPS)[:,None]
+                tf.reduce_sum((X1 - X2)**2, axis=axes)) + EPS
+            )[:,None]
 
             loss = -tf.reduce_max(L, axis=1)
            

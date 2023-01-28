@@ -18,6 +18,12 @@ def _log_interp(start, end, duration):
         for i in range(duration)
     ]
 
+def _cos_interp(start, end, duration):
+    return [
+        end + (start - end) * 0.5 * (np.cos(i / duration * np.pi) + 1)
+        for i in range(duration)
+    ]
+
 def _no_interp(start, duration):
     return [start for _ in range(duration)]
 
@@ -73,55 +79,61 @@ class Schedule(object):
 
         elif schedule_string == 'linear':
             self._schedule = Schedule(
-                '[0.]-[1.]', duration, base_value).as_list()
+                '[0.]-[1.]', duration, base_value
+            ).as_list()
 
         elif schedule_string == 'linear_half':
             self._schedule = Schedule(
-                '[0.]-[50%:1.]-[1.]', duration, base_value).as_list()
+                '[0.]-[50%:1.]-[1.]', duration, base_value
+            ).as_list()
 
-        elif schedule_string.startswith('linear_from_'):
-            start = float(schedule_string.split('linear_from_')[1]) / base_value
+        elif schedule_string == 'linear_decay':
             self._schedule = Schedule(
-                f'[{start}]-[1.]', duration, base_value).as_list()
+                '[1.]-[0.]', duration, base_value
+            ).as_list()
 
-        elif schedule_string.startswith('linear_half_from_'):
-            start = float(
-                schedule_string.split('linear_half_from_')[1]) / base_value
+        elif schedule_string == 'linear_decay_after_half':
             self._schedule = Schedule(
-                f'[{start}]-[50%:1.]-[1.]', duration, base_value).as_list()
+                '[1.]-[50%:1.]-[0.]', duration, base_value
+            ).as_list()
 
         elif schedule_string == 'logarithmic':
             self._schedule = Schedule(
-                '[0.01]-log-[1.]', duration, base_value).as_list()
+                '[0.01]-log-[1.]', duration, base_value
+            ).as_list()
 
         elif schedule_string == 'logarithmic_half':
             self._schedule = Schedule(
-                '[0.01]-log-[50%:1.]-[1.]', duration, base_value).as_list()
+                '[0.01]-log-[50%:1.]-[1.]', duration, base_value
+            ).as_list()
 
-        elif schedule_string.startswith('decay_to_'):
-            end = float(schedule_string.split('decay_to_')[1]) / base_value
+        elif schedule_string.startswith('decay'):
             self._schedule = Schedule(
-                f'[1.]-exp-[{end}]', duration, base_value).as_list()
+                '[1.]-exp-[0.001]', duration, base_value
+            ).as_list()
 
-        elif schedule_string.startswith('decay_after_half_to_'):
-            end = float(
-                schedule_string.split('decay_after_half_to_')[1]) / base_value
+        elif schedule_string.startswith('decay_after_half'):
             self._schedule = Schedule(
-                f'[1.]-[50%:1.]-exp-[{end}]', duration, base_value).as_list()
+                '[1.]-[50%:1.]-exp-[0.001]', duration, base_value
+            ).as_list()
 
-        elif schedule_string.startswith('decay_until_half_to_'):
-            end = float(
-                schedule_string.split('decay_until_half_to_')[1]) / base_value
+        elif schedule_string.startswith('cos'):
             self._schedule = Schedule(
-                f'[1.]-exp-[50%:{end}]-[{end}]', duration, base_value).as_list()
+                '[1.]-cos-[0.]', duration, base_value
+            ).as_list()
+
+        elif schedule_string.startswith('cos_after_half'):
+            self._schedule = Schedule(
+                '[1.]-[50%:1.]-cos-[0.]', duration, base_value
+            ).as_list()
 
         else:
             transitions_and_sections = [
                 (transition, section)
-                for transition, section in
-                zip(
+                for transition, section in zip(
                     re.split(r'\[.*?\]', schedule_string),
-                    re.findall(r'\[.*?\]', schedule_string))
+                    re.findall(r'\[.*?\]', schedule_string)
+                )
             ]
 
             n = len(transitions_and_sections)
@@ -129,7 +141,8 @@ class Schedule(object):
             uses_interpolation = not np.all(
                 np.array([
                     transition for transition, _ in transitions_and_sections
-                ]) == '')
+                ]) == ''
+            )
 
             _time = 0
             self._schedule = []
@@ -142,13 +155,15 @@ class Schedule(object):
                     duration,
                     is_start=i == 0,
                     is_end=False,
-                    interpolated=uses_interpolation)
+                    interpolated=uses_interpolation,
+                )
                 end_time, end_val = _parse_section(
                     end_section,
                     duration,
                     is_start=False,
                     is_end=i + 1 == n - 1,
-                    interpolated=uses_interpolation)
+                    interpolated=uses_interpolation,
+                )
 
                 if not (_time <= start_time <= end_time):
                     raise ValueError('Invalid time specification')
@@ -158,22 +173,39 @@ class Schedule(object):
 
                 if transition == '-':
                     self._schedule += _linear_interp(
-                        start_val, end_val, end_time - start_time)
+                        start_val, end_val, end_time - start_time
+                    )
 
                 elif transition == '-exp-':
                     self._schedule += _exp_interp(
-                        start_val, end_val, end_time - start_time)
+                        start_val, end_val, end_time - start_time
+                    )
 
                 elif transition == '-log-':
                     self._schedule += _log_interp(
-                        start_val, end_val, end_time - start_time)
+                        start_val, end_val, end_time - start_time
+                    )
+
+                elif transition == '-cos-':
+                    self._schedule += _cos_interp(
+                        start_val, end_val, end_time - start_time
+                    )
 
                 else:
                     self._schedule += _no_interp(
-                        start_val, end_time - start_time)
+                        start_val, end_time - start_time
+                    )
 
                     if i + 1 == n - 1 and end_time < duration - 1:
                         self._schedule.append(end_val)
+
+        self._schedule_string = schedule_string
+
+    def __str__(self):
+        return f'Schedule({len(self._schedule)}):{self._schedule_string}'
+
+    def __repr__(self):
+        return f'Schedule({len(self._schedule)}):{self._schedule_string}'
             
     def __getitem__(self, index):
         return self._schedule[min(index, len(self._schedule) - 1)]

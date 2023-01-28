@@ -36,8 +36,10 @@ def get_value(x):
     return x.numpy()
 
 
-def l2_normalize(x):
-    return x / (tf.sqrt(tf.reduce_sum(x**2.)) + gloro.constants.EPS)
+def l2_normalize(x, axis=None):
+    return x / (
+        tf.sqrt(tf.reduce_sum(x**2., axis=axis, keepdims=True)) +
+            gloro.constants.EPS)
 
 
 def print_if_verbose(verbose):

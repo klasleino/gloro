@@ -26,17 +26,20 @@ def data_augmentation(
         # Randomly adjust the saturation and contrast.
         if saturation is not None and input_shape[-1] == 3:
             x = tf.image.random_saturation(
-                x, lower=saturation[0], upper=saturation[1])
+                x, lower=saturation[0], upper=saturation[1]
+            )
 
         if contrast is not None:
             x = tf.image.random_contrast(
-                x, lower=contrast[0], upper=contrast[1])
+                x, lower=contrast[0], upper=contrast[1]
+            )
 
         # Randomly zoom.
         if zoom is not None:
             widths = tf.random.uniform([batch_size], 1. - zoom, 1.)
             top_corners = tf.random.uniform(
-                [batch_size, 2], 0, 1. - widths[:, None])
+                [batch_size, 2], 0, 1. - widths[:, None]
+            )
             bottom_corners = top_corners + widths[:, None]
             boxes = tf.concat((top_corners, bottom_corners), axis=1)
 

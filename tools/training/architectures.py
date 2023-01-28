@@ -1,448 +1,262 @@
-from tensorflow.keras.initializers import GlorotUniform
-from tensorflow.keras.initializers import Orthogonal
-from tensorflow.keras.layers import Activation
-from tensorflow.keras.layers import AveragePooling2D
-from tensorflow.keras.layers import Conv2D
-from tensorflow.keras.layers import Dense
-from tensorflow.keras.layers import Dropout
-from tensorflow.keras.layers import Flatten
-from tensorflow.keras.layers import Input
-
+from gloro.layers import AveragePooling2D
+from gloro.layers import Conv2D
+from gloro.layers import Dense
+from gloro.layers import Flatten
+from gloro.layers import Input
 from gloro.layers import InvertibleDownsampling
+from gloro.layers import MaxPooling2D
 from gloro.layers import MinMax
-from gloro.layers import ResnetBlock
 
 
-def _add_pool(z, pooling_type, activation=None, initialization='orthogonal'):
-    if pooling_type == 'avg':
-        return AveragePooling2D()(z)
+def Activation(activation_type='minmax'):
+    if activation_type == 'minmax':
+        return MinMax()
 
-    elif pooling_type == 'conv':
-        channels = z.shape[-1]
-
-        z = Conv2D(
-            channels, 
-            4, 
-            strides=2, 
-            padding='same', 
-            kernel_initializer=initialization)(z)
-
-        return _add_activation(z, activation)
-
-    elif pooling_type == 'invertible':
-        return InvertibleDownsampling()(z)
-
-    else:
-        raise ValueError(f'unknown pooling type: {pooling_type}')
-
-def _add_activation(z, activation_type='relu'):
     if activation_type == 'relu':
-        return Activation('relu')(z)
-
-    elif activation_type == 'elu':
-        return Activation('elu')(z)
-
-    elif activation_type == 'softplus':
-        return Activation('softplus')(z)
-
-    elif activation_type == 'minmax':
-        return MinMax()(z)
+        return ReLU()
 
     else:
         raise ValueError(f'unknown activation type: {activation_type}')
 
+def Downsample(downsample_type):
+    if downsample_type == 'invertible':
+        return InvertibleDownsampling(2)
 
-def cnn_simple(
-    input_shape, 
-    num_classes, 
-    pooling='conv', 
-    activation='relu',
-    initialization='orthogonal',
-):
-    x = Input(input_shape)
-    z = Conv2D(32, 3, padding='same', kernel_initializer=initialization)(x)
-    z = _add_activation(z, activation)
-    z = _add_pool(z, pooling, activation, initialization)
+    elif downsample_type == 'avg':
+        return AveragePooling2D(2)
 
-    z = Conv2D(64, 3, padding='same', kernel_initializer=initialization)(z)
-    z = _add_activation(z, activation)
-    z = _add_pool(z, pooling, activation, initialization)
+    elif downsample_type == 'max':
+        return MaxPooling2D(2)
 
-    z = Flatten()(z)
-    z = Dense(256, kernel_initializer=initialization)(z)
-    z = _add_activation(z, activation)
-
-    z = Dense(256, kernel_initializer=initialization)(z)
-    z = _add_activation(z, activation)
-
-    y = Dense(num_classes, kernel_initializer=initialization)(z)
-
-    return x, y
-
-def minmax_cnn_simple(
-    input_shape, 
-    num_classes, 
-    pooling='invertible', 
-    initialization='orthogonal',
-    normalize_lc=False,
-):
-    return cnn_simple(
-        input_shape, num_classes, 
-        pooling=pooling, 
-        activation='minmax',
-        initialization=initialization)
+    else:
+        raise ValueError(f'unknown downsample type: {downsample_type}')
 
 
 def cnn_2C2F(
     input_shape, 
     num_classes, 
-    activation='relu',
+    activation='minmax',
     initialization='orthogonal',
 ):
     x = Input(input_shape)
     z = Conv2D(
-        16, 4, strides=2, padding='same', kernel_initializer=initialization)(x)
-    z = _add_activation(z, activation)
+        16, 4,
+        strides=2,
+        padding='same',
+        kernel_initializer=initialization,
+    )(x)
+    z = Activation(activation)(z)
 
     z = Conv2D(
-        32, 4, strides=2, padding='same', kernel_initializer=initialization)(z)
-    z = _add_activation(z, activation)
+        32, 4,
+        strides=2,
+        padding='same',
+        kernel_initializer=initialization,
+    )(z)
+    z = Activation(activation)(z)
 
     z = Flatten()(z)
     z = Dense(100, kernel_initializer=initialization)(z)
-    z = _add_activation(z, activation)
+    z = Activation(activation)(z)
+
     y = Dense(num_classes, kernel_initializer=initialization)(z)
 
     return x, y
-
-def minmax_cnn_2C2F(
-    input_shape, 
-    num_classes, 
-    pooling='conv', 
-    initialization='orthogonal',
-):
-    return cnn_2C2F(
-        input_shape, num_classes, 
-        pooling=pooling, 
-        activation='minmax',
-        initialization=initialization)
 
 
 def cnn_4C3F(
     input_shape, 
     num_classes, 
     pooling='conv', 
-    activation='relu',
+    activation='minmax',
     initialization='orthogonal',
 ):
     x = Input(input_shape)
+
     z = Conv2D(32, 3, padding='same', kernel_initializer=initialization)(x)
-    z = _add_activation(z, activation)
-    z = _add_pool(z, pooling, activation, initialization)
+    z = Activation(activation)(z)
+    z = Conv2D(
+        32, 4,
+        strides=2,
+        padding='same',
+        kernel_initializer=initialization,
+    )(z)
+    z = Activation(activation)(z)
 
     z = Conv2D(64, 3, padding='same', kernel_initializer=initialization)(z)
-    z = _add_activation(z, activation)
-    z = _add_pool(z, pooling, activation, initialization)
+    z = Activation(activation)(z)
+    z = Conv2D(
+        64, 4,
+        strides=2,
+        padding='same',
+        kernel_initializer=initialization,
+    )(z)
+    z = Activation(activation)(z)
 
     z = Flatten()(z)
     z = Dense(512, kernel_initializer=initialization)(z)
-    z = _add_activation(z, activation)
+    z = Activation(activation)(z)
     z = Dense(512, kernel_initializer=initialization)(z)
-    z = _add_activation(z, activation)
+    z = z = Activation(activation)(z)
+
     y = Dense(num_classes, kernel_initializer=initialization)(z)
 
     return x, y
-
-def minmax_cnn_4C3F(
-    input_shape, 
-    num_classes, 
-    pooling='conv', 
-    initialization='orthogonal',
-):
-    return cnn_4C3F(
-        input_shape, num_classes, 
-        pooling=pooling, 
-        activation='minmax',
-        initialization=initialization)
 
 
 def cnn_6C2F(
     input_shape, 
     num_classes, 
-    pooling='conv', 
-    activation='relu',
+    activation='minmax',
     initialization='orthogonal',
 ):
     x = Input(input_shape)
+
     z = Conv2D(32, 3, padding='same', kernel_initializer=initialization)(x)
-    z = _add_activation(z, activation)
+    z = Activation(activation)(z)
     z = Conv2D(32, 3, padding='same', kernel_initializer=initialization)(z)
-    z = _add_activation(z, activation)
-    z = _add_pool(z, pooling, activation, initialization)
+    z = Activation(activation)(z)
+    z = Conv2D(
+        32, 4,
+        strides=2,
+        padding='same',
+        kernel_initializer=initialization,
+    )(z)
+    z = Activation(activation)(z)
 
     z = Conv2D(64, 3, padding='same', kernel_initializer=initialization)(z)
-    z = _add_activation(z, activation)
+    z = Activation(activation)(z)
     z = Conv2D(64, 3, padding='same', kernel_initializer=initialization)(z)
-    z = _add_activation(z, activation)
-    z = _add_pool(z, pooling, activation, initialization)
+    z = Activation(activation)(z)
+    z = Conv2D(
+        64, 4,
+        strides=2,
+        padding='same',
+        kernel_initializer=initialization,
+    )(z)
+    z = Activation(activation)(z)
 
     z = Flatten()(z)
     z = Dense(512, kernel_initializer=initialization)(z)
-    z = _add_activation(z, activation)
+    z = Activation(activation)(z)
+
     y = Dense(num_classes, kernel_initializer=initialization)(z)
 
     return x, y
-
-def minmax_cnn_6C2F(
-    input_shape, 
-    num_classes, 
-    pooling='conv', 
-    initialization='orthogonal',
-):
-    return cnn_6C2F(
-        input_shape, num_classes, 
-        pooling=pooling, 
-        activation='minmax',
-        initialization=initialization)
 
 
 def cnn_8C2F(
     input_shape, 
     num_classes, 
-    pooling='conv', 
-    activation='relu',
+    activation='minmax',
     initialization='orthogonal',
 ):
     x = Input(input_shape)
+
     z = Conv2D(64, 3, padding='same', kernel_initializer=initialization)(x)
-    z = _add_activation(z, activation)
+    z = Activation(activation)(z)
     z = Conv2D(64, 3, padding='same', kernel_initializer=initialization)(z)
-    z = _add_activation(z, activation)
-    z = _add_pool(z, pooling, activation, initialization)
+    z = Activation(activation)(z)
+    z = Conv2D(
+        64, 4,
+        strides=2,
+        padding='same',
+        kernel_initializer=initialization,
+    )(z)
+    z = Activation(activation)(z)
 
     z = Conv2D(128, 3, padding='same', kernel_initializer=initialization)(z)
-    z = _add_activation(z, activation)
+    z = Activation(activation)(z)
     z = Conv2D(128, 3, padding='same', kernel_initializer=initialization)(z)
-    z = _add_activation(z, activation)
-    z = _add_pool(z, pooling, activation, initialization)
+    z = Activation(activation)(z)
+    z = Conv2D(
+        128, 4,
+        strides=2,
+        padding='same',
+        kernel_initializer=initialization,
+    )(z)
+    z = Activation(activation)(z)
 
     z = Conv2D(256, 3, padding='same', kernel_initializer=initialization)(z)
-    z = _add_activation(z, activation)
-    z = _add_pool(z, pooling, activation, initialization)
+    z = Activation(activation)(z)
+    z = Conv2D(
+        256, 4,
+        strides=2,
+        padding='same',
+        kernel_initializer=initialization,
+    )(z)
+    z = Activation(activation)(z)
 
     z = Flatten()(z)
     z = Dense(256, kernel_initializer=initialization)(z)
-    z = _add_activation(z, activation)
+    z = Activation(activation)(z)
+
     y = Dense(num_classes, kernel_initializer=initialization)(z)
 
     return x, y
 
-def minmax_cnn_8C2F(
-    input_shape, 
-    num_classes, 
-    pooling='conv', 
-    initialization='orthogonal',
-):
-    return cnn_8C2F(
-        input_shape, num_classes, 
-        pooling=pooling, 
-        activation='minmax',
-        initialization=initialization)
 
-
-def alexnet(
+def _cnn_CxCC2F(
+    backbone_depth,
+    backbone_width,
     input_shape,
     num_classes,
-    pooling='avg',
-    activation='relu',
+    activation='minmax',
     initialization='orthogonal',
-    dropout=False,
+    stem_downsample=2,
 ):
     x = Input(input_shape)
 
+    # Stem.
     z = Conv2D(
-        96,
-        11,
+        backbone_width, 5,
+        strides=stem_downsample,
         padding='same',
+        kernel_initializer=initialization,
+    )(x)
+    z = Activation(activation)(z)
+
+    # Backbone.
+    for _ in range(backbone_depth):
+        z = Conv2D(
+            backbone_width, 3,
+            padding='same',
+            kernel_initializer=initialization
+        )(z)
+        z = Activation(activation)(z)
+
+    # Neck.
+    z = Conv2D(
+        2 * backbone_width, 4,
         strides=4,
-        kernel_initializer=initialization)(x)
-    z = _add_activation(z, activation)
-    z = _add_pool(z, pooling, activation, initialization)
-
-    z = Conv2D(256, 5, padding='same', kernel_initializer=initialization)(z)
-    z = Activation('relu')(z)
-    z = _add_pool(z, pooling, activation, initialization)
-
-    z = Conv2D(384, 3, padding='same', kernel_initializer=initialization)(z)
-    z = _add_activation(z, activation)
-    z = Conv2D(384, 3, padding='same', kernel_initializer=initialization)(z)
-    z = _add_activation(z, activation)
-    z = Conv2D(384, 3, padding='same', kernel_initializer=initialization)(z)
-    z = _add_activation(z, activation)
-    z = _add_pool(z, pooling, activation, initialization)
+        padding='valid',
+        kernel_initializer=initialization,
+    )(z)
+    z = Activation(activation)(z)
 
     z = Flatten()(z)
-    if dropout:
-        z = Dropout(0.5)(z)
-    z = Dense(4096, kernel_initializer=initialization)(z)
-    z = _add_activation(z, activation)
-    if dropout:
-        z = Dropout(0.5)(z)
-    z = Dense(4096, kernel_initializer=initialization)(z)
-    z = _add_activation(z, activation)
-    
-    y = Dense(num_classes, kernel_initializer=initialization)(z)
+    z = Dense(512)(z)
+    z = Activation(activation)(z)
+
+    # Head.
+    y = Dense(num_classes)(z)
 
     return x, y
 
-def minmax_alexnet(
+def cnn_C6CC2F(
     input_shape,
     num_classes,
-    pooling='invertible',
+    width=128,
+    activation='minmax',
     initialization='orthogonal',
-    dropout=False,
+    stem_downsample=2,
 ):
-    return alexnet(
-        input_shape, num_classes, 
-        pooling=pooling,
-        activation='minmax',
+    return _cnn_CxCC2F(
+        6, width, input_shape, num_classes,
+        activation=activation,
         initialization=initialization,
-        dropout=dropout)
+        stem_downsample=stem_downsample,
+    )
 
 
-def vgg16(
-    input_shape,
-    num_classes,
-    pooling='avg',
-    activation='relu',
-    initialization='orthogonal',
-):
-    x = Input(input_shape)
 
-    z = Conv2D(64, 3, padding='same', kernel_initializer=initialization)(x)
-    z = _add_activation(z, activation)
-    z = Conv2D(64, 3, padding='same', kernel_initializer=initialization)(z)
-    z = _add_activation(z, activation)
-    z = _add_pool(z, pooling, activation, initialization)
-
-    z = Conv2D(128, 3, padding='same', kernel_initializer=initialization)(z)
-    z = _add_activation(z, activation)
-    z = Conv2D(128, 3, padding='same', kernel_initializer=initialization)(z)
-    z = _add_activation(z, activation)
-    z = _add_pool(z, pooling, activation, initialization)
-
-    z = Conv2D(256, 3, padding='same', kernel_initializer=initialization)(z)
-    z = _add_activation(z, activation)
-    z = Conv2D(256, 3, padding='same', kernel_initializer=initialization)(z)
-    z = _add_activation(z, activation)
-    z = Conv2D(256, 3, padding='same', kernel_initializer=initialization)(z)
-    z = _add_activation(z, activation)
-    z = _add_pool(z, pooling, activation, initialization)
-
-    z = Conv2D(512, 3, padding='same', kernel_initializer=initialization)(z)
-    z = _add_activation(z, activation)
-    z = Conv2D(512, 3, padding='same', kernel_initializer=initialization)(z)
-    z = _add_activation(z, activation)
-    z = Conv2D(512, 3, padding='same', kernel_initializer=initialization)(z)
-    z = _add_activation(z, activation)
-    z = _add_pool(z, pooling, activation, initialization)
-
-    z = Conv2D(512, 3, padding='same', kernel_initializer=initialization)(z)
-    z = _add_activation(z, activation)
-    z = Conv2D(512, 3, padding='same', kernel_initializer=initialization)(z)
-    z = _add_activation(z, activation)
-    z = Conv2D(512, 3, padding='same', kernel_initializer=initialization)(z)
-    z = _add_activation(z, activation)
-    z = _add_pool(z, pooling, activation, initialization)
-
-    z = Flatten()(z)
-    z = Dense(4096, kernel_initializer=initialization)(z)
-    z = _add_activation(z, activation)
-    z = Dense(4096, kernel_initializer=initialization)(z)
-    z = _add_activation(z, activation)
-
-    y = Dense(num_classes, kernel_initializer=initialization)(z)
-
-    return x, y
-
-def minmax_vgg16(
-        input_shape,
-        num_classes,
-        pooling='invertible',
-        initialization='orthogonal'):
-
-    return vgg16(
-        input_shape, num_classes, 
-        pooling=pooling,
-        activation='minmax',
-        initialization=initialization)
-
-
-def resnet_tiny(
-    input_shape,
-    num_classes,
-    pooling='avg',
-    activation='relu',
-    initialization='orthogonal',
-    fixup_residual_scaling=False,
-    identity_skip=False,
-):
-    x = Input(input_shape)
-
-    z = Conv2D(64, (5, 5), strides=(1, 1), padding='same')(x)
-    z = _add_activation(z, activation)
-    z = _add_pool(z, pooling, activation, initialization)
-
-    z = ResnetBlock(
-        filters=(128, 128, 128),
-        kernel_sizes=(3, 3, 1),
-        stride1=2,
-        activation=activation,
-        use_invertible_downsample=pooling == 'invertible',
-        kernel_initializer=initialization,
-        use_fixup_weight_and_bias=fixup_residual_scaling,
-        identity_skip=identity_skip)(z)
-    z = ResnetBlock(
-        filters=(256, 256, 256),
-        kernel_sizes=(3, 3, 1),
-        stride1=2,
-        activation=activation,
-        use_invertible_downsample=pooling == 'invertible',
-        kernel_initializer=initialization,
-        use_fixup_weight_and_bias=fixup_residual_scaling,
-        identity_skip=identity_skip)(z)
-    z = ResnetBlock(
-        filters=(512, 512, 512),
-        kernel_sizes=(3, 3, 1),
-        stride1=2,
-        activation=activation,
-        use_invertible_downsample=pooling == 'invertible',
-        kernel_initializer=initialization,
-        use_fixup_weight_and_bias=fixup_residual_scaling,
-        identity_skip=identity_skip)(z)
-
-    z = _add_pool(z, pooling, activation, initialization)
-
-    z = Flatten()(z)
-    z = Dense(512, kernel_initializer=initialization)(z)
-    z = _add_activation(z, activation)
-
-    y = Dense(num_classes, kernel_initializer=initialization)(z)
-
-    return x, y
-
-def minmax_resnet_tiny(
-    input_shape,
-    num_classes,
-    pooling='invertible',
-    initialization='orthogonal',
-    fixup_residual_scaling=False,
-    identity_skip=False,
-):
-    return resnet_tiny(
-        input_shape, num_classes, 
-        pooling=pooling, 
-        activation='minmax',
-        initialization=initialization,
-        fixup_residual_scaling=fixup_residual_scaling,
-        identity_skip=identity_skip)

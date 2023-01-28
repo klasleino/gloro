@@ -12,3 +12,8 @@ def pytest_configure(config):
 
         tf.config.experimental.set_visible_devices(device, 'GPU')
         tf.config.experimental.set_memory_growth(device, True)
+
+    else:
+        cpus = tf.config.experimental.list_physical_devices('CPU')
+
+        tf.config.experimental.set_visible_devices(cpus, 'CPU')

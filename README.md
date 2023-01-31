@@ -21,6 +21,17 @@ The `gloro/relaxations` directory implements the extensions described in this [p
 }
 ```
 
+The snapshot, `gloro/snapshots/hu23_snapshot.zip`, includes the Pytorch implementation of LiResNet architecture and EMMA loss that further improve the VRAs and scales GloroNet to ImageNet-scale datasets. The official Tensorflow and Pytorch implementations will soon be available. In the meantime, if you use the code from the snapshot, please additionally cite:
+
+```
+@misc{kaiscaling2023,
+  author = {Hu, Kai and Zou, Andy and Wang, Zifan and Leino, Klas and Fredrikson, Matt},
+  title = {Scaling in Depth: Unlocking Robustness Certification on ImageNet},
+  publisher = {arXiv},
+  year = {2023}
+}
+```
+
 # Best Results
 
 For quick reference, we include our current best VRA (verified-robust accuracy) results here (these are more up-to-date and may surpass the results reported in the original paper). These results currently represent the state-of-the-art for deterministic L2 robustness certification. See `tools` for scripts to reproduce these results.
@@ -40,7 +51,7 @@ Imagenet      | 1.0    | LiResNet 18L588W | **0.142**
 
 # Resources
 
-For more on the theory behind GloRo Nets, check out our [blog post](https://towardsdatascience.com/training-provably-robust-neural-networks-1e15f2d80be2) for a high-level introduction, or read our [original paper](https://arxiv.org/pdf/2102.08452.pdf) for the technical details and proofs.
+For more on the theory behind GloRo Nets, check out our [blog post](https://towardsdatascience.com/training-provably-robust-neural-networks-1e15f2d80be2) for a high-level introduction, or read our [original paper](https://arxiv.org/pdf/2102.08452.pdf) for the technical details and proofs. Read our [follow-up work](https://arxiv.org/abs/2301.12549) that scales up Gloro Nets to residual networks, i.e. LiResNet, for ImageNet-scale applications.
 For interactive examples of this library in action, see our notebooks on [training GloRo Nets](https://colab.research.google.com/drive/1Z6Zrnfp9caRN3OPYy306MfnCdGEx5OCT?usp=sharing) and [using relaxed robustness](https://colab.research.google.com/drive/1TOsLT9Nj1lxPm4DKSGf-QdYhS6WBBhdf?usp=sharing).
 
 
@@ -248,3 +259,5 @@ These properties are described below.
 * Klas Leino
 * Zifan Wang
 * Matt Fredrikson
+* Kai Hu
+* Andy Zou

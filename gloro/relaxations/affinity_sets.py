@@ -11,7 +11,8 @@ class AffinitySet(object):
         self._num_classes = one_hot_encoding.shape[1]
 
         self._max_set_size = tf.reduce_max(
-            tf.reduce_sum(self._mask, axis=1))
+            tf.reduce_sum(self._mask, axis=1)
+        )
 
     @property
     def num_classes(self):

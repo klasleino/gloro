@@ -33,13 +33,6 @@ class GloroNet(Model):
         _skip_init=False,
         **kwargs,
     ):
-        if _skip_init:
-            # This can be used by subclasses of `GloroNet` that want to call
-            # `super().__init__` to run `Model.__init__` but *not* this
-            # initializer.
-            super().__init__(inputs, outputs, **kwargs)
-            return
-
         # Validate the provided parameters.
         if epsilon is None:
             raise ValueError('`epsilon` is required')
@@ -111,6 +104,8 @@ class GloroNet(Model):
             name='hardcoded_lc',
             trainable=False,
         )
+
+        self.output_names = ['main']
 
 
     @property
@@ -269,7 +264,6 @@ class GloroNet(Model):
         y = self.f(X, training=training)
 
         k = self.sub_lipschitz
-        W = self.layers[-1].kernel
 
         # j is the predicted class, and y_j is the corresponding logit.
         j = tf.argmax(y, axis=1)
@@ -295,8 +289,9 @@ class GloroNet(Model):
         # can gain on the predicted class.
         y_bot = tf.reduce_max(y_bot_i, axis=1, keepdims=True)
 
-        return tf.concat([y, y_bot], axis=1)
+        y_with_bot = tf.concat([y, y_bot], axis=1)
 
+        return y_with_bot
 
     # Keras models can pass loss functions and metrics to `compile` in the form
     # of strings, for common losses/metrics. Here, we override `compile` to
@@ -304,7 +299,9 @@ class GloroNet(Model):
     def compile(self, **kwargs):
         if 'loss' in kwargs:
             if isinstance(kwargs['loss'], str):
-                kwargs['loss'] = get_loss(kwargs['loss'])
+                kwargs['loss'] = { 'main': get_loss(kwargs['loss']) }
+            else:
+                kwargs['loss'] = { 'main': kwargs['loss'] }
 
         if 'metrics' in kwargs:
             metrics = kwargs['metrics']

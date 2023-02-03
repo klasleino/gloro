@@ -22,7 +22,9 @@ def rtk_vra_sparse(y_true, y_pred):
             tf.not_equal(
                 tf.argmax(y_pred[:,:-1], axis=1, output_type='int32'),
                 bot_index),
-            'float32'))
+            'float32',
+        )
+    )
 
 def rtk_vra_cat(y_true, y_pred):
     labels = tf.argmax(y_true, axis=1, output_type='int32')[:,None]
@@ -34,7 +36,8 @@ def rtk_vra(y_true, y_pred):
     return tf.case([
         (tf.equal(tf.shape(y_true)[1], 1),
             lambda: rtk_vra_sparse(y_true, y_pred))],
-        default=lambda: rtk_vra_cat(y_true, y_pred))
+        default=lambda: rtk_vra_cat(y_true, y_pred),
+    )
 
 
 def affinity_vra_sparse(y_true, y_pred): return rtk_vra_sparse(y_true, y_pred)
@@ -58,7 +61,8 @@ def top_k_clean_acc(k, sparse=None):
         return tf.case([
             (tf.equal(tf.shape(y_true)[1], 1),
                 lambda: metric_sparse(y_true, y_pred))],
-            default=lambda: metric_cat(y_true, y_pred))
+            default=lambda: metric_cat(y_true, y_pred),
+        )
 
     metric.__name__ = f'top_{k}_clean_acc'
 

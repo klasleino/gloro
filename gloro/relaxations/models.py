@@ -1,94 +1,69 @@
+import numpy as np
 import tensorflow as tf
 
 from tensorflow.keras.models import Model
-from tensorflow.keras.layers import Activation
-from tensorflow.keras.layers import Concatenate
+from keras.layers import Lambda
 
 import gloro
 
 from gloro.models import GloroNet
 from gloro.relaxations.affinity_sets import AffinitySet
-from gloro.relaxations.layers import LipschitzMarginAffinity
-from gloro.relaxations.layers import LipschitzMarginRtk
-from gloro.training.callbacks import UpdatePowerIterates
 from gloro.training.losses import get as get_loss
+from gloro.utils import get_value
+from gloro.utils import set_value
 
 
 class RtkGloroNet(GloroNet):
+    """
+    TODO: docstring.
+    """
     def __init__(
         self, 
         inputs=None, 
         outputs=None, 
         epsilon=None, 
         k=None,
-        num_iterations=5,
+        *,
         model=None, 
-        _skip_init=False,
         **kwargs,
     ):
-        if _skip_init:
-            # We have to do this because keras requires __init__ to be called on
-            # *all* subclasses.
-            super().__init__(inputs, outputs, _skip_init=True, **kwargs)
-            return
-
-        if epsilon is None:
-            raise ValueError('`epsilon` is required')
+        super().__init__(inputs, outputs, epsilon, model=model, **kwargs)
 
         if k is None:
             raise ValueError('`k` is required')
-        
-        if model is None and (inputs is None or outputs is None):
-            raise ValueError(
-                'must specify either `inputs` and `outputs` or `model`')
-            
-        if model is not None and inputs is not None and outputs is not None:
-            raise ValueError(
-                'cannot specify both `inputs` and `outputs` and `model`')
 
-        if inputs is None or outputs is None:
-            inputs = model.inputs
-            outputs = model.outputs
-            
-        else:
-            model = Model(inputs, outputs)
+        self._k = tf.Variable(k, dtype='int32', name='k', trainable=False)
 
-        if not isinstance(outputs, (list, tuple)):
-            outputs = [outputs]
-            
-        if len(outputs) > 1:
-            raise ValueError(
-                f'only models with a single output are supported, but got '
-                f'{len(outputs)} outputs')
+        self.output_names = ['pred', 'guarantee', 'pred_top_k']
 
-        margin_layer = LipschitzMarginRtk(
-            epsilon, k, model, num_iterations=num_iterations)
-
-        margin = margin_layer(*outputs)
-
-        margin, k_guarantee, loosest_k = margin
-
-        margin = [
-            Activation('linear', name='pred')(margin),
-            Activation('linear', name='guarantee')(k_guarantee),
-            Concatenate(name='pred_top_k')(
-                [margin, loosest_k])
-        ]
-        
-        super().__init__(inputs, margin, None, _skip_init=True, **kwargs)
-
-        self._inputs = inputs
-        self._output = outputs[0]
-        self._margin_layer = margin_layer
-        self._f = GloroNet._ModelContainer(model)
 
     @property
     def k(self):
-        return self._margin_layer.k
+        return get_value(self._k)
 
     @k.setter
-    def k(self, new_k):
-        self._margin_layer.k = new_k
+    def k(self, new_value):
+        set_value(self._k, new_value)
+
+
+    # Prediction variations.
+
+    # TODO(klas): In theory, we could provide the maximum radius for each k in
+    #   [K] for which X is top-k robust. Or, we could provide the maximum of any
+    #   such radius. At any rate, the implementation of this method in the
+    #   `GloroNet` superclass gives a radius that is only meaningful for top-1
+    #   robustness, so we are removing this method for now. In the future we may
+    #   implement an RTK variation.
+    def certified_radius(self, X):
+        raise NotImplementedError(
+            '`certified_radius` is not currently implemented for `RtkGloroNet`'
+        )
+
+    def predict_with_certified_radius(self, X):
+        raise NotImplementedError(
+            '`predict_with_certified_radius` is not currently implemented for '
+            '`RtkGloroNet`'
+        )
 
     def predict_with_guarantee(self, *args, **kwargs):
         return super().predict(*args, **kwargs)[0:2]
@@ -126,10 +101,125 @@ class RtkGloroNet(GloroNet):
         return [preds, guarantees.numpy()]
 
 
+    # Margin and Lipschitz computation.
+
+    def _K_ij(self, sub_lipschitz, j):
+        """
+        K_ij is the Lipschitz constant on the margin y_j - y_i.
+        """
+        kW = sub_lipschitz * self.layers[-1].kernel
+
+        # Get the weight column of the predicted class.
+        kW_j = tf.gather(tf.transpose(kW), j)
+
+        # Get weights that predict the value y_j - y_i for all i != j.
+        kW_ij = kW_j[:,:,:,None] - kW[None,None]
+
+        return tf.sqrt(tf.reduce_sum(kW_ij * kW_ij, axis=2))
+
+    def _mk(self, sub_lipschitz, y):
+        """
+        For each k in [K] mk is the maximum margin by which the kth-highest
+        logit surpasses all logits not in the top k.
+        """
+
+        # For k in [K], j is the kth highest class, and y_j is the corresponding
+        # logit value.
+        y_j, j = tf.math.top_k(y, k=self._k)
+
+        # K_ij is the Lipschitz constant on the margin y_j - y_i.
+        K_ij = self._K_ij(sub_lipschitz, j)
+
+        where_in_top_k = tf.equal(y[:,None], y_j[:,:,None])
+        where_yi_lt_yjk = tf.math.cumsum(
+            tf.where(where_in_top_k, -np.inf, 0.), axis=1
+        )
+        where_l_leq_k = tf.where(
+            tf.equal(tf.cumsum(tf.eye(tf.cast(self._k, 'uint8'))), 0.),
+            -np.inf,
+            0,
+        )
+
+        mk_j = y_j[:,None] - tf.reduce_max(
+            y[:,None,None] + self._epsilon * K_ij[:,None] +
+                where_yi_lt_yjk[:,:,None] +
+                where_l_leq_k[None,:,:,None],
+            axis=3,
+        )
+
+        return tf.reduce_min(mk_j, axis=2)
+
+    def lipschitz_constant(self, X=None, y=None):
+        if y is None:
+            if X is None:
+                y = tf.eye(self.num_classes)
+            else:
+                y = self.f(X)
+
+        # For k in [K], j is the kth highest class, and y_j is the corresponding
+        # logit value.
+        y_j, j = tf.math.top_k(y, k=self._k)
+
+        # K_ij is the Lipschitz constant on the margin y_j - y_i.
+        K_ij = self._K_ij(self.sub_lipschitz, j)
+
+        return K_ij + tf.math.cumsum(
+            tf.where(
+                tf.equal(y[:,None], y_j[:,:,None]),
+                -np.inf,
+                0.),
+            axis=1,
+            reverse=True,
+        )
+
+
     # Overriding `keras.Model` functions.
+
+    def call(self, X, training=False):
+        y = self.f(X, training=training)
+
+        sub_lipschitz = self.sub_lipschitz
+
+        # For each k in [K] mk is the maximum margin by which the kth-highest
+        # logit surpasses all logits not in the top k.
+        mk = self._mk(sub_lipschitz, y)
+
+        # m is the the largest margin by which some k in [K] surpasses all other
+        # logits not in the top k.
+        m = tf.reduce_max(mk, axis=1)
+
+        # We also keep track of all k in [K] for which the model is top-k
+        # robust.
+        k_guarantee = tf.cast(mk > 0, 'int32')
+
+        # For the purpose of metrics, get the most lax (i.e., largest) k that we
+        # are top-k robust with. Specifically, this is used for top-k VRA.
+        loosest_k = tf.cast(
+            1 + tf.argmax(
+                tf.cast(mk > 0, 'float32') +
+                    # Adding this breaks ties in favor of larger k.
+                    tf.cast(tf.range(self._k), 'float32') * 1e-7,
+                axis=1),
+            'float32'
+        )[:,None]
+
+        y_bot = tf.reduce_max(y, axis=1) - m
+
+        y_with_bot = tf.concat([y, y_bot[:,None]], axis=1)
+
+        # We name the different outputs for use with the loss function and
+        # metrics.
+        return [
+            tf.identity(y_with_bot, name='pred'),
+            tf.identity(k_guarantee, name='guarantee'),
+            tf.concat([y_with_bot, loosest_k], axis=1, name='pred_top_k'),
+        ]
 
     def predict(self, *args, **kwargs):
         return super().predict(*args, **kwargs)[0]
+
+    def evaluate(self, *args, **kwargs):
+        return super().evaluate(*args, **kwargs)[1:]
 
     def compile(self, **kwargs):
         if 'loss' in kwargs:
@@ -167,60 +257,32 @@ class RtkGloroNet(GloroNet):
         Model.compile(self, **kwargs)
 
     def get_config(self):
-        return {
-            'epsilon': float(self.epsilon),
+        config = {
             'k': int(self.k),
-            'num_iterations': int(self.num_iterations),
         }
+        base_config = super().get_config()
+
+        return dict(list(base_config.items()) + list(config.items()))
 
 
 class AffinityGloroNet(RtkGloroNet):
+    """
+    TODO: docstring.
+    """
     def __init__(
         self,
         inputs=None,
         outputs=None,
         epsilon=None,
         affinity_sets=None,
-        num_iterations=5,
+        *,
         model=None,
-        _skip_init=False,
         **kwargs,
     ):
-        if _skip_init:
-            # We have to do this because keras requires __init__ to be called on
-            # *all* subclasses.
-            super().__init__(inputs, outputs, **kwargs)
-            return
-
-        if epsilon is None:
-            raise ValueError('`epsilon` is required')
-
         if affinity_sets is None:
             raise ValueError('`affinity_sets` is required')
 
-        if model is None and (inputs is None or outputs is None):
-            raise ValueError(
-                'must specify either `inputs` and `outputs` or `model`')
-
-        if model is not None and inputs is not None and outputs is not None:
-            raise ValueError(
-                'cannot specify both `inputs` and `outputs` and `model`')
-
-        if inputs is None or outputs is None:
-            inputs = model.inputs
-            outputs = model.outputs
-
-        else:
-            model = Model(inputs, outputs)
-
-        if not isinstance(outputs, (list, tuple)):
-            outputs = [outputs]
-
-        if len(outputs) > 1:
-            raise ValueError(
-                f'only models with a single output are supported, but got '
-                f'{len(outputs)} outputs')
-
+        # Parse the provided affinity sets.
         if isinstance(affinity_sets, AffinitySet):
             pass
 
@@ -237,42 +299,107 @@ class AffinityGloroNet(RtkGloroNet):
             raise ValueError(
                 f'unexpected type for `affinity_sets`: {type(affinity_sets)}')
 
-        if affinity_sets.mask.shape[1] != model.output_shape[1]:
+        k = affinity_sets.max_set_size
+
+        super().__init__(inputs, outputs, epsilon, k, model=model, **kwargs)
+
+        # Make sure that the given affinity sets match the model's output shape.
+        if affinity_sets.mask.shape[1] != self.num_classes:
             raise ValueError(
                 f'affinity sets defined for a number of classes that does not '
                 f'match the output shape of the model: '
-                f'{affinity_sets.mask.shape[1]} vs {model.output_shape[1]}')
+                f'{affinity_sets.mask.shape[1]} vs {self.num_classes}'
+            )
 
-        k = affinity_sets.max_set_size
+        self._affinity_sets = affinity_sets
 
-        margin_layer = LipschitzMarginAffinity(
-            epsilon, k, affinity_sets, model, num_iterations=num_iterations)
-
-        margin = margin_layer(*outputs)
-
-        margin, k_guarantee, loosest_k = margin
-
-        margin = [
-            Activation('linear', name='pred')(margin),
-            Activation('linear', name='guarantee')(k_guarantee),
-            Concatenate(name='pred_top_k')(
-                [margin, loosest_k])
-        ]
-
-        super().__init__(inputs, margin, None, None, _skip_init=True, **kwargs)
-
-        self._inputs = inputs
-        self._output = outputs[0]
-        self._margin_layer = margin_layer
-        self._f = GloroNet._ModelContainer(model)
 
     @property
     def affinity_sets(self):
-        return self._margin_layer.affinity_sets
+        return self._affinity_sets
+
+    @property
+    def k(self):
+        return get_value(self._k)
+
+    @k.setter
+    def k(self, new_value):
+        raise ValueError('`k` cannot be set on `AffinityGloroNet`')
+
+
+    # Prediction variations.
+
+    # TODO(klas): In theory, we could provide the maximum radius for which X is
+    #    affinity-robust. At any rate, the implementation of this method in the
+    #   `GloroNet` superclass gives a radius that is only meaningful for top-1
+    #   robustness, so we are removing this method for now. In the future we may
+    #   implement an affinity variation.
+    def certified_radius(self, X):
+        raise NotImplementedError(
+            '`certified_radius` is not currently implemented for '
+            '`AffinityGloroNet'
+        )
+
+    def predict_with_certified_radius(self, X):
+        raise NotImplementedError(
+            '`predict_with_certified_radius` is not currently implemented for '
+            '`AffinityGloroNet`'
+        )
+
+
+    # Overriding `RtkGloroNet` helpers.
+
+    def _mk(self, sub_lipschitz, y):
+        """
+        For each k in [K] mk is the maximum margin by which the kth-highest
+        logit surpasses all logits not in the top k, if the top k classes all
+        belong to the same affinity set (and -infinity otherwise).
+        """
+
+        # For k in [K], j is the kth highest class, and y_j is the corresponding
+        # logit value.
+        y_j, j = tf.math.top_k(y, k=self._k)
+
+        # K_ij is the Lipschitz constant on the margin y_j - y_i.
+        K_ij = self._K_ij(sub_lipschitz, j)
+
+        where_in_top_k = tf.equal(y[:,None], y_j[:,:,None])
+        where_yi_lt_yjk = tf.math.cumsum(
+            tf.where(where_in_top_k, -np.inf, 0.), axis=1
+        )
+        where_l_leq_k = tf.where(
+            tf.equal(tf.cumsum(tf.eye(tf.cast(self._k, 'uint8'))), 0.),
+            -np.inf,
+            0,
+        )
+
+        mk_j = y_j[:,None] - tf.reduce_max(
+            y[:,None,None] + self._epsilon * K_ij[:,None] +
+                where_yi_lt_yjk[:,:,None] +
+                where_l_leq_k[None,:,:,None],
+            axis=3,
+        )
+
+        mk = tf.reduce_min(mk_j, axis=2)
+
+        # We don't want to consider any margins that correspond to a k that
+        # corresponds to a set of classes that do not match any of our affinity
+        # sets.
+        return tf.where(
+            self._affinity_sets.where_matches(where_in_top_k),
+            mk,
+            -np.inf,
+        )
+
 
     def get_config(self):
-        return {
-            'epsilon': float(self.epsilon),
+        config = {
             'affinity_sets': str(self.affinity_sets),
-            'num_iterations': int(self.num_iterations),
         }
+        base_config = super().get_config()
+
+        # Note that `k` is not passed directly to the constructor like it is in
+        # `RtkGloroNet`.
+        del base_config['k']
+
+        return dict(list(base_config.items()) + list(config.items()))

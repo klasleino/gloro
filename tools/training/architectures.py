@@ -4,6 +4,7 @@ from gloro.layers import Dense
 from gloro.layers import Flatten
 from gloro.layers import Input
 from gloro.layers import InvertibleDownsampling
+from gloro.layers import LiResNetBlock
 from gloro.layers import MaxPooling2D
 from gloro.layers import MinMax
 
@@ -221,7 +222,7 @@ def _cnn_CxCC2F(
         z = Conv2D(
             backbone_width, 3,
             padding='same',
-            kernel_initializer=initialization
+            kernel_initializer=initialization,
         )(z)
         z = Activation(activation)(z)
 
@@ -259,4 +260,80 @@ def cnn_C6CC2F(
     )
 
 
+def _liresnet_CxCC2F(
+    backbone_depth,
+    backbone_width,
+    input_shape,
+    num_classes,
+    activation='minmax',
+    initialization='orthogonal',
+    stem_downsample=2,
+):
+    x = Input(input_shape)
+
+    # Stem.
+    z = Conv2D(
+        backbone_width, 5,
+        strides=stem_downsample,
+        padding='same',
+        kernel_initializer=initialization,
+    )(x)
+    z = Activation(activation)(z)
+
+    # Backbone.
+    for _ in range(backbone_depth):
+        z = LiResNetBlock(
+            3,
+            residual_scale=backbone_depth**(-0.5),
+            kernel_initializer=initialization,
+        )(z)
+        z = Activation(activation)(z)
+
+    # Neck.
+    z = Conv2D(
+        2 * backbone_width, 4,
+        strides=4,
+        padding='valid',
+        kernel_initializer=initialization,
+    )(z)
+    z = Activation(activation)(z)
+
+    z = Flatten()(z)
+    z = Dense(512)(z)
+    z = Activation(activation)(z)
+
+    # Head.
+    y = Dense(num_classes)(z)
+
+    return x, y
+
+def liresnet_C6CC2F(
+    input_shape,
+    num_classes,
+    width=128,
+    activation='minmax',
+    initialization='orthogonal',
+    stem_downsample=2,
+):
+    return _liresnet_CxCC2F(
+        6, width, input_shape, num_classes,
+        activation=activation,
+        initialization=initialization,
+        stem_downsample=stem_downsample,
+    )
+
+def liresnet_C18CC2F(
+    input_shape,
+    num_classes,
+    width=256,
+    activation='minmax',
+    initialization='orthogonal',
+    stem_downsample=2,
+):
+    return _liresnet_CxCC2F(
+        18, width, input_shape, num_classes,
+        activation=activation,
+        initialization=initialization,
+        stem_downsample=stem_downsample,
+    )
 

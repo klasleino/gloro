@@ -1,6 +1,7 @@
 from tensorflow.keras.layers import Input
 
 from gloro.layers.base import GloroLayer
+from gloro.layers.blocks import LiResNetBlock
 from gloro.layers.custom import InvertibleDownsampling
 from gloro.layers.custom import MinMax
 from gloro.layers.custom import Scaling

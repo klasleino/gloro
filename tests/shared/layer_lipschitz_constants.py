@@ -30,6 +30,30 @@ class LayerLipschitzConstants:
             self.tensors.to_np(layers.scaling(scale=4.).lipschitz()), 4.
         )
 
+    @mark.parametrize('kernel_size', [1,3,4,5,6])
+    def test_liresnet_block_identity(self, layers, kernel_size):
+        layer = layers.liresnet_block_identity(
+            kernel_size=kernel_size,
+            lc_strategy=PowerMethod(100),
+        )
+
+        # Make sure running the layer forward actually gives you the same input.
+        X = self.tensors.random(
+            (1, *layers.liresnet_block_identity.input_shape)
+        )
+        Z = layer(X)
+
+        assert np.allclose(
+            self.tensors.to_np(X), self.tensors.to_np(Z),
+            atol=1e-06
+        )
+
+        # Make sure the Lipschitz constant is 1, since this is the identity.
+        lc = self.tensors.to_np(layer.lipschitz())
+
+        assert np.allclose(lc, 1.)
+
+
     # For sanity checks, just make sure that the Lipschitz constant is an upper
     # bound on the distortion of a sample. For these tests, repeat a few times,
     # since there is randomness involved.
@@ -68,3 +92,23 @@ class LayerLipschitzConstants:
         lc = self.tensors.to_np(layer.lipschitz())
 
         assert self._sample_lc(layer, layers.strided_conv.input_shape) <= lc
+
+    @mark.parametrize('i', range(5))
+    def test_liresnet_block_no_affine(self, layers, i):
+        layer = layers.liresnet_block_no_affine(lc_strategy=PowerMethod(100))
+
+        lc = self.tensors.to_np(layer.lipschitz())
+        sample_lc = self._sample_lc(
+            layer, layers.liresnet_block_no_affine.input_shape
+        )
+        assert sample_lc <= lc
+
+    @mark.parametrize('i', range(5))
+    def test_liresnet_block_with_affine(self, layers, i):
+        layer = layers.liresnet_block_with_affine(lc_strategy=PowerMethod(100))
+
+        lc = self.tensors.to_np(layer.lipschitz())
+        sample_lc = self._sample_lc(
+            layer, layers.liresnet_block_with_affine.input_shape
+        )
+        assert sample_lc <= lc

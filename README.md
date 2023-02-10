@@ -1,7 +1,7 @@
 # gloro
 Library for training provably-robust neural networks.
 
-This repository implements the method described in this [paper](https://arxiv.org/pdf/2102.08452.pdf) (appearing in ICML 2021), and is maintained by the authors, Klas Leino, Zifan Wang, and Matt Fredrikson. If you use this code, please use the following citation:
+This repository implements the method described in this [paper](https://arxiv.org/pdf/2102.08452.pdf) (appearing in ICML 2021), and is maintained by the authors, [Klas Leino](https://klas.leino.tech), [Zifan Wang](https://sites.google.com/west.cmu.edu/zifan-wang), and [Matt Fredrikson](https://www.cs.cmu.edu/~mfredrik). If you use this code, please use the following citation:
 ```bibtex
 @INPROCEEDINGS{leino21gloro,
     title = {Globally-Robust Neural Networks},
@@ -256,7 +256,7 @@ These properties are described below.
 
 # Main Contributers
 
-* Klas Leino
+* [Klas Leino](https://klas.leino.tech)
 * Zifan Wang
 * Matt Fredrikson
 * Kai Hu

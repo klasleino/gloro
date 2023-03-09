@@ -21,13 +21,12 @@ The `gloro/relaxations` directory implements the extensions described in this [p
 }
 ```
 
-The snapshot, `gloro/snapshots/hu23_snapshot.zip`, includes the Pytorch implementation of LiResNet architecture and EMMA loss that further improve the VRAs and scales GloroNet to ImageNet-scale datasets. The official Tensorflow and Pytorch implementations will soon be available. In the meantime, if you use the code from the snapshot, please additionally cite:
+The snapshot, `gloro/snapshots/hu23_snapshot.zip`, includes the Pytorch implementation of LiResNet architecture and EMMA loss that further improve the VRAs and scales GloroNet to ImageNet-scale datasets (see this [paper](https://arxiv.org/pdf/2301.12549.pdf)). The official Tensorflow and Pytorch implementations will soon be available. In the meantime, if you use the code from the snapshot, please additionally cite:
 
-```
-@misc{kaiscaling2023,
-  author = {Hu, Kai and Zou, Andy and Wang, Zifan and Leino, Klas and Fredrikson, Matt},
+```bibtex
+@MISC{hu23scaling,
   title = {Scaling in Depth: Unlocking Robustness Certification on ImageNet},
-  publisher = {arXiv},
+  author = {Kai Hu and Zifan Wang and Klas Leino and Andy Zou and Matt Fredrikson},
   year = {2023}
 }
 ```

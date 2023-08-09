@@ -40,11 +40,12 @@ dataset       | radius | architecture     | VRA
 MNIST         | 0.3    | Conv 2C2F        | **0.957**
 MNIST         | 1.58   | Conv 4C3F        | **0.628**
 CIFAR-10      | 0.141  | Conv 6C2F        | 0.600
-CIFAR-10      | 0.141  | LiResNet 18L256W | **0.651**
-CIFAR-100     | 0.141  | LiResNet 18L256W | **0.363**
+CIFAR-10      | 0.141  | LiResNet 18L256W | **0.701**
+CIFAR-100     | 0.141  | LiResNet 18L256W | **0.415**
 Tiny-Imagenet | 0.141  | Conv 8C2F        | 0.224
-Tiny-Imagenet | 0.141  | LiResNet 18L256W | **0.292**
-Imagenet      | 1.0    | LiResNet 18L588W | **0.142**
+Tiny-Imagenet | 0.141  | LiResNet 18L256W | **0.336**
+ImageNet      | 0.141  | LiResNet 12L588W | **0.350**
+ImageNet      | 1.0    | LiResNet 18L588W | **0.142**
 
 
 

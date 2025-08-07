@@ -37,9 +37,10 @@ def get_value(x):
 
 
 def l2_normalize(x, axis=None):
-    return x / (
-        tf.sqrt(tf.reduce_sum(x**2., axis=axis, keepdims=True)) +
-            gloro.constants.EPS)
+    raw_norm = tf.sqrt(tf.reduce_sum(x**2., axis=axis, keepdims=True))
+    norm = tf.where(raw_norm > 0, raw_norm, raw_norm + gloro.constants.EPS)
+
+    return x / norm
 
 
 def print_if_verbose(verbose):

@@ -199,9 +199,15 @@ class PowerMethod(LipschitzComputationStrategy):
         # Update the power iterate.
         self.iterate.assign(x)
 
+        # If ||x|| is 0, add a small constant to the denominator to prevent
+        # dividing by zero.
+        optional_eps = gloro.constants.EPS * tf.cast(
+            tf.equal(tf.reduce_sum(x**2.), 0.),
+            dtype='float32'
+        )
         return tf.sqrt(
             tf.reduce_sum((self._forward(x))**2.) / (
-                tf.reduce_sum(x**2.) + gloro.constants.EPS
+                tf.reduce_sum(x**2.) + optional_eps
             )
         )
 

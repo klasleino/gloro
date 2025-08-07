@@ -24,10 +24,22 @@ The `gloro/relaxations` directory implements the extensions described in this [p
 The snapshot, `gloro/snapshots/hu23_snapshot.zip`, includes the Pytorch implementation of LiResNet architecture and EMMA loss that further improve the VRAs and scales GloroNet to ImageNet-scale datasets (see this [paper](https://arxiv.org/pdf/2301.12549.pdf)). The official Tensorflow and Pytorch implementations will soon be available. In the meantime, if you use the code from the snapshot, please additionally cite:
 
 ```bibtex
-@MISC{hu23scaling,
+@INPROCEEDINGS{hu23scaling,
   title = {Scaling in Depth: Unlocking Robustness Certification on ImageNet},
   author = {Kai Hu and Zifan Wang and Klas Leino and Andy Zou and Matt Fredrikson},
+  booktitle = {NIPS},
   year = {2023}
+}
+```
+
+New state-of-the-art results can be found in [this paper](https://arxiv.org/pdf/2310.02513.pdf), where we demonstrate how architecture optimizations that boost the effective capacity of the network can unolock impressive gains in VRA.
+
+```bibtex
+@INPROCEEDINGS{hu23recipe,
+  title = {A Recipe for Improved Certifiable Robustness: Capacity and Data},
+  author = {Kai Hu and Klas Leino and Zifan Wang and Matt Fredrikson},
+  booktitle = {ICLR},
+  year = {2024}
 }
 ```
 
@@ -35,17 +47,21 @@ The snapshot, `gloro/snapshots/hu23_snapshot.zip`, includes the Pytorch implemen
 
 For quick reference, we include our current best VRA (verified-robust accuracy) results here (these are more up-to-date and may surpass the results reported in the original paper). These results currently represent the state-of-the-art for deterministic L2 robustness certification. See `tools` for scripts to reproduce these results.
 
-dataset       | radius | architecture     | VRA
---------------|--------|------------------|----------
-MNIST         | 0.3    | Conv 2C2F        | **0.957**
-MNIST         | 1.58   | Conv 4C3F        | **0.628**
-CIFAR-10      | 0.141  | Conv 6C2F        | 0.600
-CIFAR-10      | 0.141  | LiResNet 18L256W | **0.701**
-CIFAR-100     | 0.141  | LiResNet 18L256W | **0.415**
-Tiny-Imagenet | 0.141  | Conv 8C2F        | 0.224
-Tiny-Imagenet | 0.141  | LiResNet 18L256W | **0.336**
-ImageNet      | 0.141  | LiResNet 12L588W | **0.350**
-ImageNet      | 1.0    | LiResNet 18L588W | **0.142**
+dataset       | radius | architecture           | VRA
+--------------|--------|------------------------|----------
+MNIST         | 0.3    | Conv 2C2F              | **0.957**
+MNIST         | 1.58   | Conv 4C3F              | **0.628**
+CIFAR-10      | 0.141  | Conv 6C2F              | 0.600
+CIFAR-10      | 0.141  | LiResNet 18L256W       | 0.701
+CIFAR-10      | 0.141  | CHORD LiResNet 12L512W | **0.781**
+CIFAR-100     | 0.141  | LiResNet 18L256W       | 0.415
+CIFAR-100     | 0.141  | CHORD LiResNet 12L512W | **0.501**
+Tiny-Imagenet | 0.141  | Conv 8C2F              | 0.224
+Tiny-Imagenet | 0.141  | LiResNet 18L256W       | 0.336
+Tiny-Imagenet | 0.141  | CHORD LiResNet 12L512W | **0.370**
+ImageNet      | 0.141  | LiResNet 12L588W       | 0.350
+ImageNet      | 0.141  | CHORD LiResNet 12L512W | **0.383**
+ImageNet      | 1.0    | LiResNet 18L588W       | **0.142**
 
 
 
